@@ -16,6 +16,7 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 #### Backend
 - `db.js` — `CURRENT_TIMESTAMP` substituído por `datetime('now', 'localtime')` nas tabelas `speed_tests` e `push_subscriptions`; o SQLite sempre armazenava em UTC, gerando +3 h no horário coletado
 - `routes/tests.js` — cláusulas `datetime('now', ?)` ajustadas para `datetime('now', 'localtime', ?)` para manter consistência com os timestamps locais gravados
+- `scheduler.js` — `created_at` passado explicitamente no INSERT com `datetime('now', 'localtime')`, evitando dependência do DEFAULT da tabela (que não é reavaliado pelo `CREATE TABLE IF NOT EXISTS` em bancos já existentes)
 
 #### Frontend
 - `SpeedChart.vue` — `new Date(t.created_at)` substituído por `new Date(t.created_at.replace(' ', 'T'))` para garantir parse como horário local em todos os browsers
