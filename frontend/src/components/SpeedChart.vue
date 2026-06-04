@@ -42,9 +42,9 @@ export default {
   computed: {
     series() {
       const mapMbps = (tests, key) =>
-        tests.map((t) => ({ x: new Date(t.created_at).getTime(), y: parseFloat(t[key].toFixed(2)) }));
+        tests.map((t) => ({ x: new Date(t.created_at.replace(' ', 'T')).getTime(), y: parseFloat(t[key].toFixed(2)) }));
       const mapMs = (tests) =>
-        tests.map((t) => ({ x: new Date(t.created_at).getTime(), y: parseFloat(t.ping_ms.toFixed(1)) }));
+        tests.map((t) => ({ x: new Date(t.created_at.replace(' ', 'T')).getTime(), y: parseFloat(t.ping_ms.toFixed(1)) }));
 
       return [
         { name: `${this.wan1Name} - Download`, data: mapMbps(this.wan1Tests, 'download_mbps') },
@@ -77,7 +77,7 @@ export default {
         },
         xaxis: {
           type: 'datetime',
-          labels: { style: { colors: '#9CA3AF' } },
+          labels: { style: { colors: '#9CA3AF' }, datetimeUTC: false },
         },
         yaxis: [
           {

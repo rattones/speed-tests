@@ -8,8 +8,8 @@ const execFileAsync = promisify(execFile);
 const scriptPath = path.join(__dirname, 'scripts', 'run_speedtest.sh');
 
 const insertTest = db.prepare(`
-  INSERT INTO speed_tests (interface_name, download_mbps, upload_mbps, ping_ms)
-  VALUES (@interface_name, @download_mbps, @upload_mbps, @ping_ms)
+  INSERT INTO speed_tests (interface_name, download_mbps, upload_mbps, ping_ms, created_at)
+  VALUES (@interface_name, @download_mbps, @upload_mbps, @ping_ms, datetime('now', 'localtime'))
 `);
 
 async function runTest(wanName, serverId, minDownload, minUpload) {

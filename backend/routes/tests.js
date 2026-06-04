@@ -18,7 +18,7 @@ router.get('/', (req, res) => {
     stmt = db.prepare(`
       SELECT id, interface_name, download_mbps, upload_mbps, ping_ms, created_at
       FROM speed_tests
-      WHERE created_at >= datetime('now', ? )
+      WHERE created_at >= datetime('now', 'localtime', ? )
         AND interface_name = ?
       ORDER BY created_at ASC
     `);
@@ -27,7 +27,7 @@ router.get('/', (req, res) => {
     stmt = db.prepare(`
       SELECT id, interface_name, download_mbps, upload_mbps, ping_ms, created_at
       FROM speed_tests
-      WHERE created_at >= datetime('now', ?)
+      WHERE created_at >= datetime('now', 'localtime', ?)
       ORDER BY created_at ASC
     `);
     rows = stmt.all(`-${days} days`);
