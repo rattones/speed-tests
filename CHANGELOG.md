@@ -6,6 +6,25 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ---
 
+## [Unreleased] — F-0001
+
+### Adicionado
+
+#### Backend
+- `scheduler.js` — `runTest` exportado para reuso externo ao scheduler
+- `POST /api/tests/run` — endpoint para disparar medição manual de uma WAN específica; body `{ wan: 'wan1' | 'wan2' }`; retorna 400 (wan inválida), 503 (SERVER_ID não configurado) ou o resultado do teste
+
+#### Frontend
+- `WanCard.vue` — botão "Medir agora" no rodapé de cada card (presente com e sem dados); exibe spinner e texto "Medindo..." enquanto o teste corre; novas props `wanKey` e `measuring`
+- `App.vue` — estado `wan1Measuring`/`wan2Measuring`; método `runTest(wanKey)` chama o endpoint, aguarda conclusão (~30 s) e atualiza os dados automaticamente
+
+### Alterado
+
+#### Frontend
+- `SpeedChart.vue` — gráfico unificado exibindo download, upload e ping simultaneamente em 6 séries; WAN 1 em tons de azul (`#3B82F6`, `#93C5FD`, `#BFDBFE`), WAN 2 em tons de laranja (`#F59E0B`, `#FCD34D`, `#FDE68A`); download em linha sólida, upload tracejada, ping pontilhada; eixo Y duplo (Mbps à esquerda, ms à direita); removidos botões de filtro Download/Upload
+
+---
+
 ## [1.0.0] — 2026-06-04
 
 ### Adicionado

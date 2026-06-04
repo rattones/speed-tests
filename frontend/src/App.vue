@@ -27,15 +27,21 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <wan-card
             :wan-name="config.wan1Name"
+            wan-key="wan1"
             :latest-test="wan1Latest"
             :min-download="config.wan1MinDownload"
             :min-upload="config.wan1MinUpload"
+            :measuring="wan1Measuring"
+            @run-test="runTest"
           />
           <wan-card
             :wan-name="config.wan2Name"
+            wan-key="wan2"
             :latest-test="wan2Latest"
             :min-download="config.wan2MinDownload"
             :min-upload="config.wan2MinUpload"
+            :measuring="wan2Measuring"
+            @run-test="runTest"
           />
         </div>
       </section>
@@ -84,6 +90,8 @@ export default {
       tests:      [],
       loading:    true,
       lastUpdate: null,
+      wan1Measuring: false,
+      wan2Measuring: false,
       config: {
         wan1Name:        'WAN_1',
         wan2Name:        'WAN_2',
@@ -150,6 +158,28 @@ export default {
       if (diff < 60)  return `há ${diff}s`;
       if (diff < 3600) return `há ${Math.floor(diff / 60)}min`;
       return `há ${Math.floor(diff / 3600)}h`;
+    },
+
+    async runTest(wanKey) {
+      if (wanKey === 'wan1') this.wan1Measuring = true;
+      else                   this.wan2Measuring = true;
+      try {
+        const res = await fetch('/api/tests/run', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ wan: wanKey }),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          console.error('[App] Erro ao executar teste manual:', err.error || res.status);
+        }
+      } catch (err) {
+        console.error('[App] Erro ao executar teste manual:', err);
+      } finally {
+        if (wanKey === 'wan1') this.wan1Measuring = false;
+        else                   this.wan2Measuring = false;
+        await this.fetchData();
+      }
     },
   },
 };
