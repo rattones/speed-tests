@@ -2,6 +2,7 @@
 .env
 .env.*
 !.env.example
+claude.md
 
 # Banco de dados SQLite
 *.sqlite
@@ -18,4 +19,3 @@ Thumbs.db
 # Logs
 *.log
 npm-debug.log*
-claude.md
