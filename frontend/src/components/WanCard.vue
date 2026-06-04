@@ -113,7 +113,7 @@ export default {
 
   methods: {
     timeAgo(dateStr) {
-      const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
+      const diff = Math.floor((Date.now() - new Date(dateStr.replace(' ', 'T')).getTime()) / 1000);
       if (diff < 60)   return `há ${diff}s`;
       if (diff < 3600) return `há ${Math.floor(diff / 60)} min`;
       return `há ${Math.floor(diff / 3600)}h`;

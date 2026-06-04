@@ -6,6 +6,24 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ---
 
+## [Unreleased] — B-0001
+
+### Corrigido
+
+#### Infraestrutura
+- `docker-compose.yml` / `.env` — adicionada variável `TZ=America/Sao_Paulo` para que o timezone do container corresponda ao horário local do host
+
+#### Backend
+- `db.js` — `CURRENT_TIMESTAMP` substituído por `datetime('now', 'localtime')` nas tabelas `speed_tests` e `push_subscriptions`; o SQLite sempre armazenava em UTC, gerando +3 h no horário coletado
+- `routes/tests.js` — cláusulas `datetime('now', ?)` ajustadas para `datetime('now', 'localtime', ?)` para manter consistência com os timestamps locais gravados
+
+#### Frontend
+- `SpeedChart.vue` — `new Date(t.created_at)` substituído por `new Date(t.created_at.replace(' ', 'T'))` para garantir parse como horário local em todos os browsers
+- `WanCard.vue` — mesma correção na função `timeAgo()`
+- `App.vue` — mesma correção na função `timeAgo()`
+
+---
+
 ## [Unreleased] — F-0001
 
 ### Adicionado

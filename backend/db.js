@@ -15,14 +15,14 @@ db.exec(`
     download_mbps  REAL    NOT NULL,
     upload_mbps    REAL    NOT NULL,
     ping_ms        REAL    NOT NULL,
-    created_at     DATETIME DEFAULT CURRENT_TIMESTAMP
+    created_at     DATETIME DEFAULT (datetime('now', 'localtime'))
   );
 
   CREATE TABLE IF NOT EXISTS push_subscriptions (
     id                INTEGER PRIMARY KEY AUTOINCREMENT,
     endpoint          TEXT    NOT NULL UNIQUE,
     subscription_json TEXT    NOT NULL,
-    created_at        DATETIME DEFAULT CURRENT_TIMESTAMP
+    created_at        DATETIME DEFAULT (datetime('now', 'localtime'))
   );
 `);
 
