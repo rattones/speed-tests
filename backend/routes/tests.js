@@ -1,5 +1,6 @@
 const { Router } = require('express');
 const db = require('../db');
+const { runTest } = require('../scheduler');
 
 const router = Router();
 
@@ -33,6 +34,32 @@ router.get('/', (req, res) => {
   }
 
   res.json({ data: rows, count: rows.length });
+});
+
+// Dispara um teste manual para uma WAN específica
+router.post('/run', async (req, res) => {
+  const { wan } = req.body;
+
+  if (wan !== 'wan1' && wan !== 'wan2') {
+    return res.status(400).json({ error: 'wan deve ser "wan1" ou "wan2"' });
+  }
+
+  const isWan1     = wan === 'wan1';
+  const wanName    = isWan1 ? (process.env.WAN1_NAME || 'WAN_1')  : (process.env.WAN2_NAME || 'WAN_2');
+  const serverId   = isWan1 ? process.env.WAN1_SERVER_ID          : process.env.WAN2_SERVER_ID;
+  const minDown    = parseFloat(isWan1 ? (process.env.WAN1_MIN_DOWNLOAD || '0') : (process.env.WAN2_MIN_DOWNLOAD || '0'));
+  const minUp      = parseFloat(isWan1 ? (process.env.WAN1_MIN_UPLOAD   || '0') : (process.env.WAN2_MIN_UPLOAD   || '0'));
+
+  if (!serverId) {
+    return res.status(503).json({ error: `SERVER_ID de ${wanName} não configurado` });
+  }
+
+  const result = await runTest(wanName, serverId, minDown, minUp);
+  if (!result) {
+    return res.status(500).json({ error: `Falha ao executar teste em ${wanName}` });
+  }
+
+  res.json(result);
 });
 
 module.exports = router;
