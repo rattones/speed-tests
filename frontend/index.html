@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Speed Monitor</title>
+
+  <!-- Import Map: resolve bare specifiers dos módulos CDN -->
+  <!-- Deve vir ANTES de qualquer <script type="module"> -->
+  <script type="importmap">
+  {
+    "imports": {
+      "vue":        "https://unpkg.com/vue@3.4.0/dist/vue.esm-browser.js",
+      "apexcharts": "https://cdn.jsdelivr.net/npm/apexcharts@3.54.0/dist/apexcharts.esm.js"
+    }
+  }
+  </script>
+
+  <!-- Tailwind CSS via CDN -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            wan1: '#3B82F6',
+            wan2: '#F59E0B',
+          }
+        }
+      }
+    }
+  </script>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white">
+
+  <div id="app"></div>
+
+  <!-- Registro do Service Worker -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(console.error);
+    }
+  </script>
+
+  <!-- Entry point Vue 3 (ES Module) -->
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
