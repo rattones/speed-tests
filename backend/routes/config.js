@@ -11,7 +11,6 @@ router.get('/', (_req, res) => {
     wan2MinDownload: parseFloat(process.env.WAN2_MIN_DOWNLOAD || '0'),
     wan2MinUpload:   parseFloat(process.env.WAN2_MIN_UPLOAD   || '0'),
     cronInterval:    process.env.CRON_INTERVAL     || '*/15 * * * *',
-    vapidPublicKey:  process.env.VAPID_PUBLIC_KEY  || '',
   });
 });
 

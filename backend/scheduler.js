@@ -3,7 +3,6 @@ const { execFile } = require('child_process');
 const { promisify } = require('util');
 const path = require('path');
 const db = require('./db');
-const push = require('./push');
 
 const execFileAsync = promisify(execFile);
 const scriptPath = path.join(__dirname, 'scripts', 'run_speedtest.sh');
@@ -35,12 +34,6 @@ async function runTest(wanName, serverId, minDownload, minUpload) {
       `[SCHEDULER] ${wanName}: ↓${download_mbps.toFixed(1)} Mbps ` +
       `↑${upload_mbps.toFixed(1)} Mbps  ping:${ping_ms.toFixed(0)}ms`
     );
-
-    if (download_mbps < minDownload || upload_mbps < minUpload) {
-      push.sendAlert(wanName, download_mbps, upload_mbps).catch((err) =>
-        console.error('[SCHEDULER] Erro ao disparar alerta push:', err.message)
-      );
-    }
 
     return { wanName, download_mbps, upload_mbps, ping_ms };
   } catch (err) {
