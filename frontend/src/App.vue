@@ -64,7 +64,15 @@
         <p class="text-sm text-gray-500">
           Intervalo de coleta: <span class="text-gray-300 font-mono">{{ config.cronInterval }}</span>
         </p>
-        <alert-button :vapid-public-key="config.vapidPublicKey" />
+        <div class="text-sm text-gray-500 text-right">
+          <p>Desenvolvido por: <span class="text-gray-300">Marcelo Ratton</span></p>
+          <a
+            href="https://github.com/rattones/speed-tests"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-blue-400 hover:text-blue-300 transition-colors"
+          >github.com/rattones/speed-tests</a>
+        </div>
       </div>
     </footer>
 
@@ -80,9 +88,8 @@ export default {
   name: 'App',
 
   components: {
-    WanCard:     defineAsyncComponent(() => loadModule('/src/components/WanCard.vue', options)),
-    SpeedChart:  defineAsyncComponent(() => loadModule('/src/components/SpeedChart.vue', options)),
-    AlertButton: defineAsyncComponent(() => loadModule('/src/components/AlertButton.vue', options)),
+    WanCard:    defineAsyncComponent(() => loadModule('/src/components/WanCard.vue', options)),
+    SpeedChart: defineAsyncComponent(() => loadModule('/src/components/SpeedChart.vue', options)),
   },
 
   data() {
@@ -100,7 +107,6 @@ export default {
         wan2MinDownload: 0,
         wan2MinUpload:   0,
         cronInterval:    '*/15 * * * *',
-        vapidPublicKey:  '',
       },
     };
   },

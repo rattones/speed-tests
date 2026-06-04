@@ -5,7 +5,6 @@ const path = require('path');
 
 const testsRouter  = require('./routes/tests');
 const configRouter = require('./routes/config');
-const pushRouter   = require('./routes/push');
 const { startScheduler } = require('./scheduler');
 
 // db.js inicializa o banco na importação (cria tabelas se não existirem)
@@ -21,7 +20,6 @@ app.use(express.static(path.join(__dirname, 'public')));
 // ── Rotas da API ───────────────────────────────────────────────────────────
 app.use('/api/tests',  testsRouter);
 app.use('/api/config', configRouter);
-app.use('/api/push',   pushRouter);
 
 // ── Fallback SPA ───────────────────────────────────────────────────────────
 app.get('*', (_req, res) => {

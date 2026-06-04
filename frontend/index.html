@@ -35,13 +35,6 @@
 
   <div id="app"></div>
 
-  <!-- Registro do Service Worker -->
-  <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').catch(console.error);
-    }
-  </script>
-
   <!-- Entry point Vue 3 (ES Module) -->
   <script type="module" src="/src/main.js"></script>
 </body>
