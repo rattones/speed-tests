@@ -66,15 +66,8 @@ mkdir -p data
 cp .env.example .env
 ```
 
-### 2. Gerar chaves VAPID (para push notifications)
 
-```bash
-npx web-push generate-vapid-keys
-```
-
-Copie as chaves geradas para o `.env`.
-
-### 3. Descobrir IDs dos servidores Ookla
+### 2. Descobrir IDs dos servidores Ookla
 
 ```bash
 # Após o primeiro build:
@@ -84,7 +77,7 @@ docker exec speed-tests speedtest --accept-license --accept-gdpr --servers
 
 Anote os IDs dos servidores que deseja usar para cada WAN.
 
-### 4. Configurar o `.env`
+### 3. Configurar o `.env`
 
 ```env
 PORT=8020
@@ -100,14 +93,11 @@ WAN1_MIN_UPLOAD=100
 WAN2_MIN_DOWNLOAD=300
 WAN2_MIN_UPLOAD=100
 
-VAPID_PUBLIC_KEY=...
-VAPID_PRIVATE_KEY=...
-VAPID_MAILTO=mailto:admin@example.com
 
 DB_PATH=/data/speed_tests.db
 ```
 
-### 5. Configurar Policy Routing no ER605
+### 4. Configurar Policy Routing no ER605
 
 No painel do Omada Controller, configure regras de **Policy Routing** para direcionar o tráfego ao IP de cada servidor de teste pela WAN correspondente. Para descobrir os IPs:
 
@@ -116,7 +106,7 @@ docker exec speed-tests speedtest --accept-license --accept-gdpr --format=json -
   | python3 -c "import sys,json; r=json.load(sys.stdin); print(r['server']['ip'])"
 ```
 
-### 6. Iniciar
+### 5. Iniciar
 
 ```bash
 docker compose up -d
@@ -204,18 +194,14 @@ Arquivo SQLite em `./data/speed_tests.db`. Tabelas:
 | `WAN1_MIN_UPLOAD` | `0` | Limite mínimo de upload da WAN 1 (Mbps) |
 | `WAN2_MIN_DOWNLOAD` | `0` | Limite mínimo de download da WAN 2 (Mbps) |
 | `WAN2_MIN_UPLOAD` | `0` | Limite mínimo de upload da WAN 2 (Mbps) |
-| `VAPID_PUBLIC_KEY` | — | Chave pública VAPID para push |
-| `VAPID_PRIVATE_KEY` | — | Chave privada VAPID para push |
-| `VAPID_MAILTO` | — | E-mail de contato VAPID (`mailto:...`) |
 | `DB_PATH` | `/data/speed_tests.db` | Caminho do banco SQLite no container |
 
 ## Alertas Push
 
 1. No dashboard, clique em **"Ativar Alertas"**
-2. Conceda a permissão de notificação no browser
-3. A subscription é registrada via `POST /api/push/register`
-4. Sempre que um teste registrar velocidade abaixo dos limites definidos no `.env`, uma notificação é enviada para todos os browsers registrados
-5. Subscriptions expiradas (HTTP 410/404) são removidas automaticamente do banco
+2. A subscription é registrada via `POST /api/push/register`
+3. Sempre que um teste registrar velocidade abaixo dos limites definidos no `.env`, uma notificação é enviada para todos os browsers registrados
+4. Subscriptions expiradas (HTTP 410/404) são removidas automaticamente do banco
 
 > As chaves VAPID são necessárias para push notifications. Se não estiverem configuradas, o sistema funciona normalmente — apenas sem alertas.
 
