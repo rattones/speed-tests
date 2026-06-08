@@ -5,32 +5,42 @@ const { runTest } = require('../scheduler');
 const router = Router();
 
 router.get('/', (req, res) => {
-  let days = parseInt(req.query.days, 10);
-  if (isNaN(days) || days <= 0) days = 7;
-  if (days > 90) days = 90;
+  const { from, to, wan } = req.query;
 
-  const wan = req.query.wan || null;
-
-  let stmt;
   let rows;
 
-  if (wan) {
-    stmt = db.prepare(`
+  if (from && to) {
+    const base = `
       SELECT id, interface_name, download_mbps, upload_mbps, ping_ms, created_at
       FROM speed_tests
-      WHERE created_at >= datetime('now', 'localtime', ? )
-        AND interface_name = ?
-      ORDER BY created_at ASC
-    `);
-    rows = stmt.all(`-${days} days`, wan);
+      WHERE created_at >= ? AND created_at <= ?
+    `;
+    if (wan) {
+      rows = db.prepare(`${base} AND interface_name = ? ORDER BY created_at ASC`).all(from, to, wan);
+    } else {
+      rows = db.prepare(`${base} ORDER BY created_at ASC`).all(from, to);
+    }
   } else {
-    stmt = db.prepare(`
-      SELECT id, interface_name, download_mbps, upload_mbps, ping_ms, created_at
-      FROM speed_tests
-      WHERE created_at >= datetime('now', 'localtime', ?)
-      ORDER BY created_at ASC
-    `);
-    rows = stmt.all(`-${days} days`);
+    let days = parseInt(req.query.days, 10);
+    if (isNaN(days) || days <= 0) days = 1;
+    if (days > 90) days = 90;
+
+    if (wan) {
+      rows = db.prepare(`
+        SELECT id, interface_name, download_mbps, upload_mbps, ping_ms, created_at
+        FROM speed_tests
+        WHERE created_at >= datetime('now', 'localtime', ?)
+          AND interface_name = ?
+        ORDER BY created_at ASC
+      `).all(`-${days} days`, wan);
+    } else {
+      rows = db.prepare(`
+        SELECT id, interface_name, download_mbps, upload_mbps, ping_ms, created_at
+        FROM speed_tests
+        WHERE created_at >= datetime('now', 'localtime', ?)
+        ORDER BY created_at ASC
+      `).all(`-${days} days`);
+    }
   }
 
   res.json({ data: rows, count: rows.length });
