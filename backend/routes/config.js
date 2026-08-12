@@ -1,6 +1,12 @@
 const { Router } = require('express');
+const { execFile } = require('child_process');
+const { promisify } = require('util');
+const path = require('path');
 const configService = require('../configService');
 const { reloadScheduler } = require('../scheduler');
+
+const execFileAsync = promisify(execFile);
+const scriptPath = path.join(__dirname, '..', 'scripts', 'run_speedtest.sh');
 
 const router = Router();
 
@@ -51,6 +57,32 @@ router.put('/', (req, res) => {
     res.json({ cronInterval: configService.getCronInterval() });
   } catch (err) {
     handleError(res, err);
+  }
+});
+
+// Roda um speedtest real contra o servidor informado para descobrir seu IP —
+// a API pública do speedtest.net filtra por proximidade geográfica e não
+// permite consultar um servidor arbitrário por ID sem rodar o teste.
+router.get('/wans/lookup-ip', async (req, res) => {
+  const serverId = String(req.query.serverId || '').trim();
+  if (!serverId) {
+    return res.status(400).json({ error: 'serverId é obrigatório' });
+  }
+
+  try {
+    const { stdout } = await execFileAsync('bash', [scriptPath, serverId]);
+    const result = JSON.parse(stdout);
+    if (!result.server || !result.server.ip) {
+      throw new Error('Resposta do speedtest não contém o IP do servidor');
+    }
+    res.json({
+      ip:   result.server.ip,
+      host: result.server.host,
+      name: result.server.name,
+    });
+  } catch (err) {
+    console.error('[CONFIG] Erro ao buscar IP do servidor:', err.message);
+    res.status(502).json({ error: 'Não foi possível determinar o IP do servidor. Verifique o Server ID.' });
   }
 });
 
