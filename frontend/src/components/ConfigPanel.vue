@@ -47,7 +47,7 @@
               @cancel="newWan = null"
             />
 
-            <div v-for="w in wans" :key="w.id">
+            <div v-for="w in localWans" :key="w.id">
               <wan-form
                 v-if="editingWan && editingWan.id === w.id"
                 :wan="editingWan"
@@ -58,17 +58,26 @@
               <div
                 v-else
                 class="flex items-center justify-between gap-3 bg-gray-750 border border-gray-700 rounded-lg px-4 py-3"
+                :class="{ 'opacity-50': !w.active }"
               >
                 <div class="flex items-center gap-3 min-w-0">
                   <span class="w-4 h-4 rounded-full flex-shrink-0" :style="{ backgroundColor: w.colorHex }"></span>
                   <div class="min-w-0">
-                    <p class="text-white font-medium truncate">{{ w.name }}</p>
+                    <p class="text-white font-medium truncate">
+                      {{ w.name }}
+                      <span v-if="!w.active" class="text-xs text-gray-500 font-normal">(monitoramento desativado)</span>
+                    </p>
                     <p class="text-xs text-gray-400 truncate">
                       Server ID: {{ w.serverId }} · min ↓{{ w.minDownload }} ↑{{ w.minUpload }} Mbps · max ping {{ w.maxPing }}ms
                     </p>
                   </div>
                 </div>
                 <div class="flex items-center gap-2 flex-shrink-0">
+                  <button
+                    @click="toggleActive(w)"
+                    :class="w.active ? 'text-yellow-400 hover:text-yellow-300' : 'text-green-400 hover:text-green-300'"
+                    class="text-sm transition-colors"
+                  >{{ w.active ? 'Desativar' : 'Ativar' }}</button>
                   <button @click="startEdit(w)" class="text-sm text-blue-400 hover:text-blue-300 transition-colors">Editar</button>
                   <button @click="deleteWan(w)" class="text-sm text-red-400 hover:text-red-300 transition-colors">Remover</button>
                 </div>
@@ -104,6 +113,7 @@ export default {
   data() {
     return {
       localCron:  this.cronInterval,
+      localWans:  this.wans,
       editingWan: null,
       newWan:     null,
       saving:     false,
@@ -111,7 +121,43 @@ export default {
     };
   },
 
+  async mounted() {
+    // A prop `wans` do App.vue só traz WANs ativas (usadas nos cards/gráfico);
+    // aqui precisamos também das desativadas, para poder reativá-las.
+    await this.fetchAllWans();
+  },
+
   methods: {
+    async fetchAllWans() {
+      try {
+        const res = await fetch('/api/config/wans?all=1');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        this.localWans = json.data;
+      } catch (err) {
+        console.error('[ConfigPanel] Erro ao carregar WANs:', err);
+      }
+    },
+
+    async toggleActive(wan) {
+      this.errorMsg = '';
+      try {
+        const res = await fetch(`/api/config/wans/${wan.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...wan, active: !wan.active }),
+        });
+        if (!res.ok) {
+          const e = await res.json().catch(() => ({}));
+          throw new Error(e.error || `HTTP ${res.status}`);
+        }
+        await this.fetchAllWans();
+        this.$emit('changed');
+      } catch (err) {
+        this.errorMsg = err.message;
+      }
+    },
+
     startCreate() {
       this.editingWan = null;
       this.newWan = { name: '', serverId: '', colorHex: '#3B82F6', minDownload: 0, minUpload: 0, maxPing: 0 };
@@ -138,6 +184,7 @@ export default {
         }
         this.newWan = null;
         this.editingWan = null;
+        await this.fetchAllWans();
         this.$emit('changed');
       } catch (err) {
         this.errorMsg = err.message;
@@ -155,6 +202,7 @@ export default {
           const e = await res.json().catch(() => ({}));
           throw new Error(e.error || `HTTP ${res.status}`);
         }
+        await this.fetchAllWans();
         this.$emit('changed');
       } catch (err) {
         this.errorMsg = err.message;
