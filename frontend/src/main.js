@@ -2,6 +2,11 @@ import * as Vue from 'vue';
 import { createApp, defineAsyncComponent } from 'vue';
 import { loadModule } from 'https://cdn.jsdelivr.net/npm/vue3-sfc-loader@0.9.5/dist/vue3-sfc-loader.esm.js';
 import VueApexCharts from 'https://cdn.jsdelivr.net/npm/vue3-apexcharts@1.11.1/dist/vue3-apexcharts.js';
+import { deriveShades } from './utils/color.js';
+
+// Exposto para os SFCs carregados pelo sfc-loader (seus <script> não são ES modules,
+// então não podem usar `import` estático — ver componentes SpeedChart.vue e WanForm.vue)
+window.__COLOR_UTILS__ = { deriveShades };
 
 // Opções do vue3-sfc-loader
 // IMPORTANTE: moduleCache.vue deve ser o objeto de módulo Vue diretamente (não uma função),

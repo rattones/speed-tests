@@ -8,13 +8,20 @@
           <h1 class="text-2xl font-bold text-white">⚡ Speed Monitor</h1>
           <p class="text-sm text-gray-400 mt-0.5">Monitoramento de Links WAN</p>
         </div>
-        <div class="text-right text-sm text-gray-400">
-          <div v-if="lastUpdate">
-            Atualizado: {{ timeAgo(lastUpdate) }}
+        <div class="flex items-center gap-4">
+          <div class="text-right text-sm text-gray-400">
+            <div v-if="lastUpdate">
+              Atualizado: {{ timeAgo(lastUpdate) }}
+            </div>
+            <div v-if="loading" class="flex items-center gap-1 text-blue-400">
+              <span class="animate-pulse">●</span> Carregando...
+            </div>
           </div>
-          <div v-if="loading" class="flex items-center gap-1 text-blue-400">
-            <span class="animate-pulse">●</span> Carregando...
-          </div>
+          <button
+            @click="showConfig = true"
+            class="p-2 rounded-full hover:bg-gray-700 transition-colors text-xl"
+            title="Configurações"
+          >⚙️</button>
         </div>
       </div>
     </header>
@@ -26,21 +33,16 @@
         <h2 class="text-lg font-semibold text-gray-300 mb-4">Status Atual</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <wan-card
-            :wan-name="config.wan1Name"
-            wan-key="wan1"
-            :latest-test="wan1Latest"
-            :min-download="config.wan1MinDownload"
-            :min-upload="config.wan1MinUpload"
-            :measuring="wan1Measuring"
-            @run-test="runTest"
-          />
-          <wan-card
-            :wan-name="config.wan2Name"
-            wan-key="wan2"
-            :latest-test="wan2Latest"
-            :min-download="config.wan2MinDownload"
-            :min-upload="config.wan2MinUpload"
-            :measuring="wan2Measuring"
+            v-for="w in wans"
+            :key="w.id"
+            :wan-name="w.name"
+            :wan-key="w.id"
+            :color="w.color"
+            :latest-test="latestByWan[w.id] || null"
+            :min-download="w.minDownload"
+            :min-upload="w.minUpload"
+            :max-ping="w.maxPing"
+            :measuring="!!measuringByWan[w.id]"
             @run-test="runTest"
           />
         </div>
@@ -49,10 +51,7 @@
       <!-- Gráfico de Histórico -->
       <section>
         <speed-chart
-          :wan1-tests="wan1Tests"
-          :wan2-tests="wan2Tests"
-          :wan1-name="config.wan1Name"
-          :wan2-name="config.wan2Name"
+          :wans="chartWans"
           :mode="mode"
           :window-start="displayWindowStart.getTime()"
           :window-end="displayWindowEnd.getTime()"
@@ -65,6 +64,14 @@
       </section>
 
     </main>
+
+    <config-panel
+      v-if="showConfig"
+      :wans="wans"
+      :cron-interval="config.cronInterval"
+      @close="showConfig = false"
+      @changed="onConfigChanged"
+    />
 
     <!-- Footer -->
     <footer class="border-t border-gray-700 px-6 py-4 mt-8">
@@ -94,17 +101,19 @@ export default {
   name: 'App',
 
   components: {
-    WanCard:    defineAsyncComponent(() => loadModule('/src/components/WanCard.vue', options)),
-    SpeedChart: defineAsyncComponent(() => loadModule('/src/components/SpeedChart.vue', options)),
+    WanCard:     defineAsyncComponent(() => loadModule('/src/components/WanCard.vue', options)),
+    SpeedChart:  defineAsyncComponent(() => loadModule('/src/components/SpeedChart.vue', options)),
+    ConfigPanel: defineAsyncComponent(() => loadModule('/src/components/ConfigPanel.vue', options)),
   },
 
   data() {
     return {
       allTests:       [],
+      wans:           [],
       loading:        true,
       lastUpdate:     null,
-      wan1Measuring:  false,
-      wan2Measuring:  false,
+      measuringByWan: {},         // { [wanId]: boolean }
+      showConfig:     false,
       mode:           'live',     // 'live' | 'search'
       windowEnd:      new Date(), // live mode: borda direita da janela de 24h
       windowEndIsNow: true,       // se true, windowEnd acompanha "agora" no refresh
@@ -112,13 +121,7 @@ export default {
       searchTo:       '',         // search mode: data final (YYYY-MM-DD)
       refreshTimer:   null,
       config: {
-        wan1Name:        'WAN_1',
-        wan2Name:        'WAN_2',
-        wan1MinDownload: 0,
-        wan1MinUpload:   0,
-        wan2MinDownload: 0,
-        wan2MinUpload:   0,
-        cronInterval:    '*/15 * * * *',
+        cronInterval: '*/15 * * * *',
       },
     };
   },
@@ -152,20 +155,31 @@ export default {
       });
     },
 
-    wan1Tests() {
-      return this.visibleTests.filter((t) => t.interface_name === this.config.wan1Name);
+    testsByWan() {
+      const map = {};
+      for (const w of this.wans) map[w.id] = [];
+      for (const t of this.visibleTests) {
+        if (t.wan_id != null && map[t.wan_id]) map[t.wan_id].push(t);
+      }
+      return map;
     },
 
-    wan2Tests() {
-      return this.visibleTests.filter((t) => t.interface_name === this.config.wan2Name);
+    latestByWan() {
+      const map = {};
+      for (const w of this.wans) {
+        const arr = this.testsByWan[w.id] || [];
+        map[w.id] = arr.length ? arr[arr.length - 1] : null;
+      }
+      return map;
     },
 
-    wan1Latest() {
-      return this.wan1Tests.length ? this.wan1Tests[this.wan1Tests.length - 1] : null;
-    },
-
-    wan2Latest() {
-      return this.wan2Tests.length ? this.wan2Tests[this.wan2Tests.length - 1] : null;
+    chartWans() {
+      return this.wans.map((w) => ({
+        id:    w.id,
+        name:  w.name,
+        color: w.color,
+        tests: this.testsByWan[w.id] || [],
+      }));
     },
 
     canGoBack() {
@@ -183,7 +197,7 @@ export default {
   },
 
   async mounted() {
-    await this.fetchConfig();
+    await Promise.all([this.fetchWans(), this.fetchConfig()]);
     await this.fetchData();
     this.refreshTimer = setInterval(() => {
       if (this.mode === 'live') this.fetchData();
@@ -203,6 +217,30 @@ export default {
       } catch (err) {
         console.error('[App] Erro ao carregar config:', err);
       }
+    },
+
+    async fetchWans() {
+      try {
+        const res = await fetch('/api/config/wans');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        this.wans = json.data.map((w) => ({
+          id:          w.id,
+          name:        w.name,
+          serverId:    w.serverId,
+          color:       w.colorHex,
+          minDownload: w.minDownload,
+          minUpload:   w.minUpload,
+          maxPing:     w.maxPing,
+        }));
+      } catch (err) {
+        console.error('[App] Erro ao carregar WANs:', err);
+      }
+    },
+
+    async onConfigChanged() {
+      await Promise.all([this.fetchWans(), this.fetchConfig()]);
+      await this.fetchData();
     },
 
     async fetchData() {
@@ -278,14 +316,13 @@ export default {
       return `há ${Math.floor(diff / 3600)}h`;
     },
 
-    async runTest(wanKey) {
-      if (wanKey === 'wan1') this.wan1Measuring = true;
-      else                   this.wan2Measuring = true;
+    async runTest(wanId) {
+      this.measuringByWan = { ...this.measuringByWan, [wanId]: true };
       try {
         const res = await fetch('/api/tests/run', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ wan: wanKey }),
+          body: JSON.stringify({ wanId }),
         });
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
@@ -294,8 +331,7 @@ export default {
       } catch (err) {
         console.error('[App] Erro ao executar teste manual:', err);
       } finally {
-        if (wanKey === 'wan1') this.wan1Measuring = false;
-        else                   this.wan2Measuring = false;
+        this.measuringByWan = { ...this.measuringByWan, [wanId]: false };
         await this.fetchData();
       }
     },

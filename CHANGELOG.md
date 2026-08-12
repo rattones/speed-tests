@@ -6,6 +6,35 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ---
 
+## [Unreleased] — F-0002
+
+### Adicionado
+
+#### Backend
+- `db.js` — tabelas `wans` (nome, server ID, cor, limites de alerta, soft delete) e `app_settings` (chave-valor, guarda `cron_interval`); coluna `wan_id` em `speed_tests` (FK estável, substitui o vínculo por `interface_name` livre); migração automática e idempotente que popula `wans`/`app_settings` a partir do `.env` legado na primeira subida, com backfill de `wan_id` nos registros já existentes
+- `configService.js` (novo) — módulo central de acesso a config: CRUD de WANs (`getWans`, `createWan`, `updateWan`, `deleteWan`), `getCronInterval`/`setCronInterval`, validação (nome/server ID obrigatórios, cor `#RRGGBB`, limites numéricos)
+- `scheduler.js` — `runCycle()` itera sobre uma lista dinâmica de WANs (`getWans()`) lida a cada disparo, em vez de duas chamadas fixas; `reloadScheduler()` permite trocar o intervalo/lista de WANs em runtime, sem restart
+- `routes/config.js` — CRUD completo (`GET/POST/PUT/DELETE /api/config/wans`, `GET/PUT /api/config` para o cron interval); toda mudança dispara `reloadScheduler()`
+- `routes/tests.js` — `POST /api/tests/run` passa a receber `{ wanId }`; `GET /api/tests` filtra por `wan_id` numérico
+
+### Alterado
+
+#### Frontend
+- `frontend/src/utils/color.js` (novo) — `deriveShades()` deriva os tons de upload/ping a partir da cor de download escolhida pelo usuário (hex → HSL, clareando progressivamente)
+- `SpeedChart.vue` — props fixas `wan1Tests`/`wan2Tests`/`wan1Name`/`wan2Name` substituídas por uma prop única `wans` (array); séries, cores, eixos e stroke gerados dinamicamente para N WANs
+- `WanCard.vue` — nova prop `color` (acento visual na borda esquerda do card) e `maxPing`
+- `App.vue` — cards de status e gráfico passam a iterar sobre a lista de WANs vinda de `/api/config/wans` (`v-for`), no lugar de dois blocos fixos; novo botão de engrenagem no header abre o painel de configuração
+- `ConfigPanel.vue` / `WanForm.vue` (novos) — UI de CRUD de WANs (nome, server ID, cor via `<input type="color">`, limites) com prévia dos tons derivados, e edição do intervalo de coleta
+
+#### Configuração
+- `.env.example` / `.env` — removidas `WAN1_*`, `WAN2_*`, `CRON_INTERVAL`; WANs e intervalo de coleta agora são configurados pela UI (ícone ⚙️), persistidos no banco
+
+### Notas
+- Não há mais limite fixo de 2 WANs — quantas forem cadastradas são testadas a cada ciclo
+- Remover uma WAN com histórico faz soft delete (some da UI, testes antigos preservados); sem histórico, remove definitivamente
+
+---
+
 ## [Unreleased] — B-0001
 
 ### Corrigido

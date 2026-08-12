@@ -75,27 +75,19 @@ docker compose build
 docker exec speed-tests speedtest --accept-license --accept-gdpr --servers
 ```
 
-Anote os IDs dos servidores que deseja usar para cada WAN.
+Anote os IDs dos servidores que deseja usar para cada WAN — eles são cadastrados pela tela de Configurações da aplicação (passo 5), não pelo `.env`.
 
 ### 3. Configurar o `.env`
 
+Apenas configurações de infraestrutura ficam no `.env`:
+
 ```env
 PORT=8020
-CRON_INTERVAL="*/15 * * * *"
-
-WAN1_SERVER_ID=48008        # ID do servidor para a WAN 1
-WAN2_SERVER_ID=18341        # ID do servidor para a WAN 2
-WAN1_NAME=Algar             # Nome de exibição da WAN 1
-WAN2_NAME=MGNet             # Nome de exibição da WAN 2
-
-WAN1_MIN_DOWNLOAD=300       # Limite mínimo de download (Mbps)
-WAN1_MIN_UPLOAD=100
-WAN2_MIN_DOWNLOAD=300
-WAN2_MIN_UPLOAD=100
-
-
+TZ=America/Sao_Paulo
 DB_PATH=/data/speed_tests.db
 ```
+
+WANs (servidor Ookla, nome, limites de alerta, cor) e o intervalo de coleta (cron) são configurados pela própria interface web, persistidos no banco SQLite — ver "Configurar WANs" abaixo.
 
 ### 4. Configurar Policy Routing no ER605
 
@@ -113,6 +105,15 @@ docker compose up -d
 ```
 
 Acesse o dashboard em: **http://\<ip-do-host\>:8020**
+
+### 6. Configurar WANs
+
+No primeiro acesso, se você já tinha um `.env` de uma versão anterior com `WAN1_*`/`WAN2_*`/`CRON_INTERVAL`, esses valores são migrados automaticamente para o banco. Caso contrário, clique no ícone **⚙️** no canto superior direito do dashboard para:
+
+- Adicionar, editar ou remover WANs (nome, ID do servidor Ookla, cor, limites de alerta de download/upload/ping)
+- Ajustar o intervalo de coleta (cron)
+
+Não há limite fixo de WANs — quantas forem cadastradas serão testadas a cada ciclo.
 
 ## Uso
 
@@ -154,8 +155,14 @@ docker exec -it speed-tests sh -c "
 | Método | Endpoint | Descrição |
 |---|---|---|
 | GET | `/api/tests?days=7` | Histórico de testes (padrão: últimos 7 dias, máx. 90) |
-| GET | `/api/tests?wan=Algar` | Filtrado por interface |
-| GET | `/api/config` | Configurações públicas (limites, nomes, chave VAPID pública) |
+| GET | `/api/tests?wan=<wanId>` | Filtrado por WAN (id numérico) |
+| POST | `/api/tests/run` | Dispara teste manual (`{ "wanId": <id> }`) |
+| GET | `/api/config` | Intervalo de coleta (cron) atual |
+| PUT | `/api/config` | Atualiza o intervalo de coleta |
+| GET | `/api/config/wans` | Lista WANs cadastradas (`?all=1` inclui removidas) |
+| POST | `/api/config/wans` | Cria uma WAN |
+| PUT | `/api/config/wans/:id` | Atualiza uma WAN |
+| DELETE | `/api/config/wans/:id` | Remove uma WAN (soft delete se houver histórico; `?force=1` força remoção definitiva) |
 | POST | `/api/push/register` | Registra subscription de push notification |
 
 ## Banco de Dados
@@ -166,11 +173,28 @@ Arquivo SQLite em `./data/speed_tests.db`. Tabelas:
 | Campo | Tipo | Descrição |
 |---|---|---|
 | `id` | INTEGER | PK auto-increment |
-| `interface_name` | TEXT | Nome da WAN |
+| `interface_name` | TEXT | Nome da WAN no momento da medição (snapshot histórico) |
+| `wan_id` | INTEGER | FK para `wans.id` (vínculo estável) |
 | `download_mbps` | REAL | Velocidade de download em Mbps |
 | `upload_mbps` | REAL | Velocidade de upload em Mbps |
 | `ping_ms` | REAL | Latência em ms |
 | `created_at` | DATETIME | Timestamp da medição |
+
+**`wans`**
+| Campo | Tipo | Descrição |
+|---|---|---|
+| `id` | INTEGER | PK auto-increment |
+| `name` | TEXT | Nome de exibição |
+| `server_id` | TEXT | ID do servidor Ookla |
+| `color_hex` | TEXT | Cor de acento (`#RRGGBB`) — usada como cor de download; upload/ping derivam tons automaticamente |
+| `min_download` / `min_upload` / `max_ping` | REAL | Limites de alerta |
+| `active` | INTEGER | 0 = removida (soft delete, histórico preservado) |
+
+**`app_settings`**
+| Campo | Tipo | Descrição |
+|---|---|---|
+| `key` | TEXT | Chave (ex.: `cron_interval`) |
+| `value` | TEXT | Valor |
 
 **`push_subscriptions`**
 | Campo | Tipo | Descrição |
@@ -185,16 +209,10 @@ Arquivo SQLite em `./data/speed_tests.db`. Tabelas:
 | Variável | Padrão | Descrição |
 |---|---|---|
 | `PORT` | `8020` | Porta do servidor HTTP |
-| `CRON_INTERVAL` | `"*/15 * * * *"` | Intervalo dos testes (formato cron, **com aspas**) |
-| `WAN1_SERVER_ID` | — | ID do servidor Ookla para a WAN 1 (obrigatório) |
-| `WAN2_SERVER_ID` | — | ID do servidor Ookla para a WAN 2 (obrigatório) |
-| `WAN1_NAME` | `WAN_1` | Nome de exibição da WAN 1 |
-| `WAN2_NAME` | `WAN_2` | Nome de exibição da WAN 2 |
-| `WAN1_MIN_DOWNLOAD` | `0` | Limite mínimo de download da WAN 1 (Mbps) |
-| `WAN1_MIN_UPLOAD` | `0` | Limite mínimo de upload da WAN 1 (Mbps) |
-| `WAN2_MIN_DOWNLOAD` | `0` | Limite mínimo de download da WAN 2 (Mbps) |
-| `WAN2_MIN_UPLOAD` | `0` | Limite mínimo de upload da WAN 2 (Mbps) |
+| `TZ` | — | Timezone do container |
 | `DB_PATH` | `/data/speed_tests.db` | Caminho do banco SQLite no container |
+
+WANs e intervalo de coleta não são mais configurados por variável de ambiente — ver "Configurar WANs" acima.
 
 ## Alertas Push
 

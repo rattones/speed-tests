@@ -3,16 +3,21 @@ const { execFile } = require('child_process');
 const { promisify } = require('util');
 const path = require('path');
 const db = require('./db');
+const { getWans, getCronInterval } = require('./configService');
 
 const execFileAsync = promisify(execFile);
 const scriptPath = path.join(__dirname, 'scripts', 'run_speedtest.sh');
 
 const insertTest = db.prepare(`
-  INSERT INTO speed_tests (interface_name, download_mbps, upload_mbps, ping_ms, created_at)
-  VALUES (@interface_name, @download_mbps, @upload_mbps, @ping_ms, datetime('now', 'localtime'))
+  INSERT INTO speed_tests (interface_name, wan_id, download_mbps, upload_mbps, ping_ms, created_at)
+  VALUES (@interface_name, @wan_id, @download_mbps, @upload_mbps, @ping_ms, datetime('now', 'localtime'))
 `);
 
-async function runTest(wanName, serverId, minDownload, minUpload) {
+let activeTask = null;
+let cycleRunning = false;
+
+async function runTest(wan) {
+  const { id: wanId, name: wanName, server_id: serverId } = wan;
   try {
     const { stdout } = await execFileAsync('bash', [scriptPath, String(serverId)]);
 
@@ -28,49 +33,62 @@ async function runTest(wanName, serverId, minDownload, minUpload) {
     const upload_mbps   = (result.upload.bandwidth   * 8) / 1_000_000;
     const ping_ms       = result.ping.latency;
 
-    insertTest.run({ interface_name: wanName, download_mbps, upload_mbps, ping_ms });
+    insertTest.run({ interface_name: wanName, wan_id: wanId, download_mbps, upload_mbps, ping_ms });
 
     console.log(
       `[SCHEDULER] ${wanName}: ↓${download_mbps.toFixed(1)} Mbps ` +
       `↑${upload_mbps.toFixed(1)} Mbps  ping:${ping_ms.toFixed(0)}ms`
     );
 
-    return { wanName, download_mbps, upload_mbps, ping_ms };
+    return { wanId, wanName, download_mbps, upload_mbps, ping_ms };
   } catch (err) {
     console.error(`[SCHEDULER] Erro no teste de ${wanName}:`, err.message);
     return null;
   }
 }
 
+async function runCycle() {
+  if (cycleRunning) {
+    console.warn('[SCHEDULER] Ciclo anterior ainda em execução — pulando este disparo.');
+    return;
+  }
+  cycleRunning = true;
+  try {
+    console.log(`[SCHEDULER] Ciclo iniciado em ${new Date().toISOString()}`);
+    const wans = getWans();
+    for (const wan of wans) {
+      await runTest(wan);
+    }
+    console.log(`[SCHEDULER] Ciclo concluído em ${new Date().toISOString()}`);
+  } finally {
+    cycleRunning = false;
+  }
+}
+
 function startScheduler() {
-  const interval = process.env.CRON_INTERVAL || '*/15 * * * *';
+  const interval = getCronInterval();
 
-  const wan1Name      = process.env.WAN1_NAME        || 'WAN_1';
-  const wan2Name      = process.env.WAN2_NAME        || 'WAN_2';
-  const wan1ServerId  = process.env.WAN1_SERVER_ID;
-  const wan2ServerId  = process.env.WAN2_SERVER_ID;
-  const wan1MinDown   = parseFloat(process.env.WAN1_MIN_DOWNLOAD || '0');
-  const wan1MinUp     = parseFloat(process.env.WAN1_MIN_UPLOAD   || '0');
-  const wan2MinDown   = parseFloat(process.env.WAN2_MIN_DOWNLOAD || '0');
-  const wan2MinUp     = parseFloat(process.env.WAN2_MIN_UPLOAD   || '0');
-
-  if (!wan1ServerId || !wan2ServerId) {
-    console.warn('[SCHEDULER] WAN1_SERVER_ID ou WAN2_SERVER_ID não configurados — scheduler desabilitado.');
+  if (!cron.validate(interval)) {
+    console.error(`[SCHEDULER] CRON_INTERVAL inválido: "${interval}" — scheduler não iniciado.`);
     return;
   }
 
-  if (!cron.validate(interval)) {
-    console.error(`[SCHEDULER] CRON_INTERVAL inválido: "${interval}" — usando padrão */15 * * * *`);
+  const wans = getWans();
+  if (!wans.length) {
+    console.warn('[SCHEDULER] Nenhuma WAN configurada — scheduler desabilitado até criar uma.');
+    return;
   }
 
-  console.log(`[SCHEDULER] Iniciando... Intervalo: ${interval}`);
-
-  cron.schedule(interval, async () => {
-    console.log(`[SCHEDULER] Ciclo iniciado em ${new Date().toISOString()}`);
-    await runTest(wan1Name, wan1ServerId, wan1MinDown, wan1MinUp);
-    await runTest(wan2Name, wan2ServerId, wan2MinDown, wan2MinUp);
-    console.log(`[SCHEDULER] Ciclo concluído em ${new Date().toISOString()}`);
-  });
+  console.log(`[SCHEDULER] Iniciando... Intervalo: ${interval}  WANs: ${wans.map((w) => w.name).join(', ')}`);
+  activeTask = cron.schedule(interval, runCycle);
 }
 
-module.exports = { startScheduler, runTest };
+function reloadScheduler() {
+  if (activeTask) {
+    activeTask.stop();
+    activeTask = null;
+  }
+  startScheduler();
+}
+
+module.exports = { startScheduler, reloadScheduler, runTest, runCycle };

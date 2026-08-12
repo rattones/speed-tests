@@ -1,6 +1,7 @@
 const { Router } = require('express');
 const db = require('../db');
 const { runTest } = require('../scheduler');
+const { getWanById } = require('../configService');
 
 const router = Router();
 
@@ -11,12 +12,12 @@ router.get('/', (req, res) => {
 
   if (from && to) {
     const base = `
-      SELECT id, interface_name, download_mbps, upload_mbps, ping_ms, created_at
+      SELECT id, interface_name, wan_id, download_mbps, upload_mbps, ping_ms, created_at
       FROM speed_tests
       WHERE created_at >= ? AND created_at <= ?
     `;
     if (wan) {
-      rows = db.prepare(`${base} AND interface_name = ? ORDER BY created_at ASC`).all(from, to, wan);
+      rows = db.prepare(`${base} AND wan_id = ? ORDER BY created_at ASC`).all(from, to, Number(wan));
     } else {
       rows = db.prepare(`${base} ORDER BY created_at ASC`).all(from, to);
     }
@@ -27,15 +28,15 @@ router.get('/', (req, res) => {
 
     if (wan) {
       rows = db.prepare(`
-        SELECT id, interface_name, download_mbps, upload_mbps, ping_ms, created_at
+        SELECT id, interface_name, wan_id, download_mbps, upload_mbps, ping_ms, created_at
         FROM speed_tests
         WHERE created_at >= datetime('now', 'localtime', ?)
-          AND interface_name = ?
+          AND wan_id = ?
         ORDER BY created_at ASC
-      `).all(`-${days} days`, wan);
+      `).all(`-${days} days`, Number(wan));
     } else {
       rows = db.prepare(`
-        SELECT id, interface_name, download_mbps, upload_mbps, ping_ms, created_at
+        SELECT id, interface_name, wan_id, download_mbps, upload_mbps, ping_ms, created_at
         FROM speed_tests
         WHERE created_at >= datetime('now', 'localtime', ?)
         ORDER BY created_at ASC
@@ -48,25 +49,20 @@ router.get('/', (req, res) => {
 
 // Dispara um teste manual para uma WAN específica
 router.post('/run', async (req, res) => {
-  const { wan } = req.body;
+  const wanId = Number(req.body.wanId);
 
-  if (wan !== 'wan1' && wan !== 'wan2') {
-    return res.status(400).json({ error: 'wan deve ser "wan1" ou "wan2"' });
+  if (!wanId) {
+    return res.status(400).json({ error: 'wanId é obrigatório' });
   }
 
-  const isWan1     = wan === 'wan1';
-  const wanName    = isWan1 ? (process.env.WAN1_NAME || 'WAN_1')  : (process.env.WAN2_NAME || 'WAN_2');
-  const serverId   = isWan1 ? process.env.WAN1_SERVER_ID          : process.env.WAN2_SERVER_ID;
-  const minDown    = parseFloat(isWan1 ? (process.env.WAN1_MIN_DOWNLOAD || '0') : (process.env.WAN2_MIN_DOWNLOAD || '0'));
-  const minUp      = parseFloat(isWan1 ? (process.env.WAN1_MIN_UPLOAD   || '0') : (process.env.WAN2_MIN_UPLOAD   || '0'));
-
-  if (!serverId) {
-    return res.status(503).json({ error: `SERVER_ID de ${wanName} não configurado` });
+  const wan = getWanById(wanId);
+  if (!wan || !wan.active) {
+    return res.status(404).json({ error: 'WAN não encontrada' });
   }
 
-  const result = await runTest(wanName, serverId, minDown, minUp);
+  const result = await runTest(wan);
   if (!result) {
-    return res.status(500).json({ error: `Falha ao executar teste em ${wanName}` });
+    return res.status(500).json({ error: `Falha ao executar teste em ${wan.name}` });
   }
 
   res.json(result);

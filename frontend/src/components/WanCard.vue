@@ -1,5 +1,5 @@
 <template>
-  <div class="rounded-xl shadow-lg p-6 bg-gray-800">
+  <div class="rounded-xl shadow-lg p-6 bg-gray-800 border-l-4" :style="{ borderLeftColor: color }">
     <!-- Header do card -->
     <div class="flex items-center justify-between mb-5">
       <h3 class="text-lg font-bold text-white">{{ wanName.replace('_', ' ') }}</h3>
@@ -78,10 +78,12 @@ export default {
 
   props: {
     wanName:     { type: String,  required: true },
-    wanKey:      { type: String,  required: true },
+    wanKey:      { type: [String, Number], required: true },
+    color:       { type: String,  default: '#3B82F6' },
     latestTest:  { type: Object,  default: null },
     minDownload: { type: Number,  default: 0 },
     minUpload:   { type: Number,  default: 0 },
+    maxPing:     { type: Number,  default: 0 },
     measuring:   { type: Boolean, default: false },
   },
 

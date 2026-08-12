@@ -100,7 +100,7 @@
 
     <!-- Sem dados -->
     <div
-      v-if="!wan1Tests.length && !wan2Tests.length"
+      v-if="wans.every((w) => !w.tests.length)"
       class="flex items-center justify-center h-64 text-gray-500"
     >
       Nenhum dado disponível no período
@@ -119,16 +119,15 @@
 </template>
 
 <script>
+const { deriveShades } = window.__COLOR_UTILS__;
+
 export default {
   name: 'SpeedChart',
 
   emits: ['navigate', 'search', 'clear-search'],
 
   props: {
-    wan1Tests:    { type: Array,   required: true },
-    wan2Tests:    { type: Array,   required: true },
-    wan1Name:     { type: String,  default: 'WAN 1' },
-    wan2Name:     { type: String,  default: 'WAN 2' },
+    wans:         { type: Array,   required: true },    // [{id, name, color, tests}]
     mode:         { type: String,  default: 'live' },   // 'live' | 'search'
     windowStart:  { type: Number,  default: null },     // timestamp ms
     windowEnd:    { type: Number,  default: null },     // timestamp ms
@@ -210,19 +209,45 @@ export default {
           y: parseFloat(t.ping_ms.toFixed(1)),
         }));
 
-      return [
-        { name: `${this.wan1Name} - Download`, data: mapMbps(this.wan1Tests, 'download_mbps') },
-        { name: `${this.wan1Name} - Upload`,   data: mapMbps(this.wan1Tests, 'upload_mbps') },
-        { name: `${this.wan1Name} - Ping`,     data: mapMs(this.wan1Tests) },
-        { name: `${this.wan2Name} - Download`, data: mapMbps(this.wan2Tests, 'download_mbps') },
-        { name: `${this.wan2Name} - Upload`,   data: mapMbps(this.wan2Tests, 'upload_mbps') },
-        { name: `${this.wan2Name} - Ping`,     data: mapMs(this.wan2Tests) },
-      ];
+      return this.wans.flatMap((w) => [
+        { name: `${w.name} - Download`, data: mapMbps(w.tests, 'download_mbps') },
+        { name: `${w.name} - Upload`,   data: mapMbps(w.tests, 'upload_mbps') },
+        { name: `${w.name} - Ping`,     data: mapMs(w.tests) },
+      ]);
+    },
+
+    seriesColors() {
+      return this.wans.flatMap((w) => {
+        const shades = deriveShades(w.color);
+        return [shades.download, shades.upload, shades.ping];
+      });
     },
 
     chartOptions() {
-      const wan1Download = `${this.wan1Name} - Download`;
-      const wan1Ping     = `${this.wan1Name} - Ping`;
+      const hiddenLabels = { style: { colors: '#9CA3AF' } };
+      const yaxis = this.wans.flatMap((w, i) => {
+        const isFirst = i === 0;
+        return [
+          {
+            seriesName: `${w.name} - Download`,
+            show:       isFirst,
+            min:        0,
+            labels: isFirst
+              ? { style: { colors: '#9CA3AF' }, formatter: (v) => `${v.toFixed(1)} Mbps` }
+              : hiddenLabels,
+          },
+          { seriesName: `${w.name} - Upload`, show: false, labels: hiddenLabels },
+          {
+            seriesName: `${w.name} - Ping`,
+            show:       isFirst,
+            opposite:   true,
+            min:        0,
+            labels: isFirst
+              ? { style: { colors: '#9CA3AF' }, formatter: (v) => `${v.toFixed(0)} ms` }
+              : hiddenLabels,
+          },
+        ];
+      });
 
       return {
         chart: {
@@ -231,11 +256,11 @@ export default {
           animations:  { enabled: true, speed: 400 },
         },
         theme:  { mode: 'dark' },
-        colors: ['#3B82F6', '#93C5FD', '#BFDBFE', '#F59E0B', '#FCD34D', '#FDE68A'],
+        colors: this.seriesColors,
         stroke: {
           curve:     'smooth',
-          width:     [2, 2, 2, 2, 2, 2],
-          dashArray: [0, 5, 2, 0, 5, 2],
+          width:     this.wans.flatMap(() => [2, 2, 2]),
+          dashArray: this.wans.flatMap(() => [0, 5, 2]),
         },
         xaxis: {
           type: 'datetime',
@@ -244,34 +269,12 @@ export default {
           max: this.mode === 'live' && this.windowEnd   ? this.windowEnd   : undefined,
           labels: { style: { colors: '#9CA3AF' }, datetimeUTC: false },
         },
-        yaxis: [
-          {
-            seriesName: wan1Download,
-            min: 0,
-            labels: {
-              style:     { colors: '#9CA3AF' },
-              formatter: (v) => `${v.toFixed(1)} Mbps`,
-            },
-          },
-          { seriesName: wan1Download, show: false },
-          {
-            seriesName: wan1Ping,
-            opposite:   true,
-            min:        0,
-            labels: {
-              style:     { colors: '#9CA3AF' },
-              formatter: (v) => `${v.toFixed(0)} ms`,
-            },
-          },
-          { seriesName: wan1Download, show: false },
-          { seriesName: wan1Download, show: false },
-          { seriesName: wan1Ping,     show: false },
-        ],
+        yaxis,
         tooltip: {
           x: { format: 'dd/MM HH:mm' },
           y: {
             formatter: (val, { seriesIndex }) =>
-              seriesIndex === 2 || seriesIndex === 5
+              seriesIndex % 3 === 2
                 ? `${val.toFixed(0)} ms`
                 : `${val.toFixed(1)} Mbps`,
           },
