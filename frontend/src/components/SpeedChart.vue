@@ -287,6 +287,8 @@ export default {
         legend: {
           position: 'top',
           labels:   { colors: '#D1D5DB' },
+          // A cor já identifica a WAN (mesma do WanCard) — a legenda mostra só a métrica
+          formatter: (seriesName) => seriesName.replace(/^.*- /, ''),
         },
         markers: { size: 0 },
       };
