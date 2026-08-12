@@ -2,9 +2,18 @@
   <div class="rounded-xl shadow-lg p-6 bg-gray-800 border-l-4" :style="{ borderLeftColor: color }">
     <!-- Header do card -->
     <div class="flex items-center justify-between mb-5">
-      <h3 class="text-lg font-bold text-white">{{ wanName.replace('_', ' ') }}</h3>
+      <label class="flex items-center gap-2 cursor-pointer min-w-0">
+        <input
+          type="checkbox"
+          :checked="visible"
+          @change="$emit('toggle-visible', wanKey)"
+          title="Exibir no gráfico"
+          class="w-4 h-4 rounded border-gray-600 bg-gray-700 text-blue-600 focus:ring-blue-500 focus:ring-offset-gray-800 cursor-pointer flex-shrink-0"
+        />
+        <h3 class="text-lg font-bold text-white truncate">{{ wanName.replace('_', ' ') }}</h3>
+      </label>
       <span
-        class="w-3 h-3 rounded-full"
+        class="w-3 h-3 rounded-full flex-shrink-0"
         :class="statusColor"
         :title="statusLabel"
       ></span>
@@ -74,7 +83,7 @@
 export default {
   name: 'WanCard',
 
-  emits: ['run-test'],
+  emits: ['run-test', 'toggle-visible'],
 
   props: {
     wanName:     { type: String,  required: true },
@@ -85,6 +94,7 @@ export default {
     minUpload:   { type: Number,  default: 0 },
     maxPing:     { type: Number,  default: 0 },
     measuring:   { type: Boolean, default: false },
+    visible:     { type: Boolean, default: true },
   },
 
   computed: {

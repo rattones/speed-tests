@@ -30,10 +30,26 @@
 
       <!-- Cards de Status -->
       <section>
-        <h2 class="text-lg font-semibold text-gray-300 mb-4">Status Atual</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-lg font-semibold text-gray-300">Status Atual</h2>
+          <div v-if="wans.length > maxVisibleCards" class="flex items-center gap-2">
+            <button
+              @click="cardOffset--"
+              :disabled="cardOffset <= 0"
+              title="Anterior"
+              class="w-7 h-7 flex items-center justify-center rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-30 disabled:cursor-not-allowed transition text-sm font-bold"
+            >‹</button>
+            <button
+              @click="cardOffset++"
+              :disabled="cardOffset >= wans.length - maxVisibleCards"
+              title="Próxima"
+              class="w-7 h-7 flex items-center justify-center rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-30 disabled:cursor-not-allowed transition text-sm font-bold"
+            >›</button>
+          </div>
+        </div>
+        <div class="grid gap-6" :style="{ gridTemplateColumns: `repeat(${visibleWans.length}, minmax(0, 1fr))` }">
           <wan-card
-            v-for="w in wans"
+            v-for="w in visibleWans"
             :key="w.id"
             :wan-name="w.name"
             :wan-key="w.id"
@@ -43,7 +59,9 @@
             :min-upload="w.minUpload"
             :max-ping="w.maxPing"
             :measuring="!!measuringByWan[w.id]"
+            :visible="wanVisibility[w.id] !== false"
             @run-test="runTest"
+            @toggle-visible="toggleWanVisible"
           />
         </div>
       </section>
@@ -113,7 +131,10 @@ export default {
       loading:        true,
       lastUpdate:     null,
       measuringByWan: {},         // { [wanId]: boolean }
+      wanVisibility:  {},         // { [wanId]: boolean } — filtro do gráfico via checkbox no card; ausente = visível
       showConfig:     false,
+      maxVisibleCards: 3,
+      cardOffset:     0,          // índice inicial da janela de cards visíveis (carrossel)
       mode:           'live',     // 'live' | 'search'
       windowEnd:      new Date(), // live mode: borda direita da janela de 24h
       windowEndIsNow: true,       // se true, windowEnd acompanha "agora" no refresh
@@ -173,13 +194,20 @@ export default {
       return map;
     },
 
+    visibleWans() {
+      if (this.wans.length <= this.maxVisibleCards) return this.wans;
+      return this.wans.slice(this.cardOffset, this.cardOffset + this.maxVisibleCards);
+    },
+
     chartWans() {
-      return this.wans.map((w) => ({
-        id:    w.id,
-        name:  w.name,
-        color: w.color,
-        tests: this.testsByWan[w.id] || [],
-      }));
+      return this.wans
+        .filter((w) => this.wanVisibility[w.id] !== false)
+        .map((w) => ({
+          id:    w.id,
+          name:  w.name,
+          color: w.color,
+          tests: this.testsByWan[w.id] || [],
+        }));
     },
 
     canGoBack() {
@@ -193,6 +221,13 @@ export default {
     canGoForward() {
       if (this.mode !== 'live') return false;
       return this.windowEnd.getTime() < Date.now() - 10 * 60 * 1000;
+    },
+  },
+
+  watch: {
+    wans(newWans) {
+      const maxOffset = Math.max(0, newWans.length - this.maxVisibleCards);
+      if (this.cardOffset > maxOffset) this.cardOffset = maxOffset;
     },
   },
 
@@ -228,7 +263,8 @@ export default {
           id:          w.id,
           name:        w.name,
           serverId:    w.serverId,
-          color:       w.colorHex,
+          color:       w.colorHex, // usado por WanCard/SpeedChart
+          colorHex:    w.colorHex, // usado por ConfigPanel/WanForm (mesmo campo do DTO da API)
           minDownload: w.minDownload,
           minUpload:   w.minUpload,
           maxPing:     w.maxPing,
@@ -314,6 +350,11 @@ export default {
       if (diff < 60)   return `há ${diff}s`;
       if (diff < 3600) return `há ${Math.floor(diff / 60)}min`;
       return `há ${Math.floor(diff / 3600)}h`;
+    },
+
+    toggleWanVisible(wanId) {
+      const current = this.wanVisibility[wanId] !== false;
+      this.wanVisibility = { ...this.wanVisibility, [wanId]: !current };
     },
 
     async runTest(wanId) {
