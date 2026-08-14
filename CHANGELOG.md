@@ -6,6 +6,27 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ---
 
+## [Unreleased] — F-0003
+
+### Adicionado
+
+#### Frontend
+- `WanCard.vue` — nova prop `orderNumber`; badge numérico circular no header do card exibindo a posição de exibição (`sortOrder`) no carrossel
+- `WanForm.vue` — novo campo "Ordem" (`local.sortOrder`) para editar a posição de exibição de uma WAN diretamente no formulário de criação/edição
+- `ConfigPanel.vue` — texto explicativo abaixo do campo de intervalo de coleta descrevendo o formato cron (`minuto hora dia-do-mês mês dia-da-semana`), o significado de `*` e `*/N`, com exemplo (`*/15 * * * *` = a cada 15 minutos)
+
+### Alterado
+
+#### Frontend
+- `App.vue` — `fetchWans()` passa a propagar `sortOrder` (já retornado pela API, mas descartado antes) e repassá-lo como `order-number` para `wan-card`
+- `WanForm.vue` — grid de limites/cor migrado para 12 colunas (`grid-cols-12`), proporção 3/3/3/2/1 entre Min. Download, Min. Upload, Max. Ping, Ordem e Cor, para caber tudo em uma linha no desktop
+- `ConfigPanel.vue` — `startCreate()` inicializa `sortOrder` da nova WAN com a posição seguinte (`localWans.length`)
+
+### Notas
+- O campo `sort_order` já existia de ponta a ponta no backend desde a F-0002 (tabela, service, DTO da API); esta entrega apenas expõe a leitura e edição dele na UI
+
+---
+
 ## [Unreleased] — F-0002
 
 ### Adicionado

@@ -10,6 +10,11 @@
           title="Exibir no gráfico"
           class="w-4 h-4 rounded border-gray-600 bg-gray-700 text-blue-600 focus:ring-blue-500 focus:ring-offset-gray-800 cursor-pointer flex-shrink-0"
         />
+        <span
+          v-if="orderNumber !== null"
+          class="flex items-center justify-center w-5 h-5 rounded-full bg-gray-700 text-gray-300 text-xs font-semibold flex-shrink-0"
+          title="Ordem de exibição"
+        >{{ orderNumber }}</span>
         <h3 class="text-lg font-bold text-white truncate">{{ wanName.replace('_', ' ') }}</h3>
       </label>
       <span
@@ -88,6 +93,7 @@ export default {
   props: {
     wanName:     { type: String,  required: true },
     wanKey:      { type: [String, Number], required: true },
+    orderNumber: { type: [String, Number], default: null },
     color:       { type: String,  default: '#3B82F6' },
     latestTest:  { type: Object,  default: null },
     minDownload: { type: Number,  default: 0 },

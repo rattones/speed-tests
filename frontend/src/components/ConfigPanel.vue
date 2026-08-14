@@ -25,6 +25,12 @@
               class="px-4 py-1.5 text-sm bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed rounded transition-colors font-medium"
             >Salvar</button>
           </div>
+          <p class="text-xs text-gray-500 mt-2">
+            Formato: <span class="font-mono text-gray-400">minuto hora dia-do-mês mês dia-da-semana</span>.
+            Cada campo aceita <span class="font-mono text-gray-400">*</span> (qualquer valor) ou
+            <span class="font-mono text-gray-400">*/N</span> (a cada N).
+            Ex.: <span class="font-mono text-gray-400">*/15 * * * *</span> = a cada 15 minutos, todo dia, o dia todo.
+          </p>
         </section>
 
         <!-- Lista de WANs -->
@@ -160,7 +166,7 @@ export default {
 
     startCreate() {
       this.editingWan = null;
-      this.newWan = { name: '', serverId: '', colorHex: '#3B82F6', minDownload: 0, minUpload: 0, maxPing: 0 };
+      this.newWan = { name: '', serverId: '', colorHex: '#3B82F6', minDownload: 0, minUpload: 0, maxPing: 0, sortOrder: this.localWans.length };
     },
 
     startEdit(wan) {

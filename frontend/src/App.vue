@@ -53,6 +53,7 @@
             :key="w.id"
             :wan-name="w.name"
             :wan-key="w.id"
+            :order-number="w.sortOrder"
             :color="w.color"
             :latest-test="latestByWan[w.id] || null"
             :min-download="w.minDownload"
@@ -268,6 +269,7 @@ export default {
           minDownload: w.minDownload,
           minUpload:   w.minUpload,
           maxPing:     w.maxPing,
+          sortOrder:   w.sortOrder,
         }));
       } catch (err) {
         console.error('[App] Erro ao carregar WANs:', err);

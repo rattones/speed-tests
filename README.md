@@ -110,8 +110,10 @@ Acesse o dashboard em: **http://\<ip-do-host\>:8020**
 
 No primeiro acesso, se você já tinha um `.env` de uma versão anterior com `WAN1_*`/`WAN2_*`/`CRON_INTERVAL`, esses valores são migrados automaticamente para o banco. Caso contrário, clique no ícone **⚙️** no canto superior direito do dashboard para:
 
-- Adicionar, editar ou remover WANs (nome, ID do servidor Ookla, cor, limites de alerta de download/upload/ping)
-- Ajustar o intervalo de coleta (cron)
+- Adicionar, editar ou remover WANs (nome, ID do servidor Ookla, cor, limites de alerta de download/upload/ping, ordem de exibição)
+- Ajustar o intervalo de coleta (cron) — o formulário explica o formato (`minuto hora dia-do-mês mês dia-da-semana`)
+
+A ordem de exibição (campo "Ordem") define a posição do card de cada WAN no carrossel do dashboard; o número correspondente é exibido como um badge no header do card.
 
 Não há limite fixo de WANs — quantas forem cadastradas serão testadas a cada ciclo.
 
@@ -188,6 +190,7 @@ Arquivo SQLite em `./data/speed_tests.db`. Tabelas:
 | `server_id` | TEXT | ID do servidor Ookla |
 | `color_hex` | TEXT | Cor de acento (`#RRGGBB`) — usada como cor de download; upload/ping derivam tons automaticamente |
 | `min_download` / `min_upload` / `max_ping` | REAL | Limites de alerta |
+| `sort_order` | INTEGER | Posição de exibição do card no carrossel do dashboard |
 | `active` | INTEGER | 0 = removida (soft delete, histórico preservado) |
 
 **`app_settings`**

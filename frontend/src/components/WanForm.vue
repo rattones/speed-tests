@@ -19,8 +19,8 @@
       </div>
     </div>
 
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-      <div>
+    <div class="grid grid-cols-2 sm:grid-cols-12 gap-3">
+      <div class="sm:col-span-3">
         <label class="block text-xs text-gray-400 mb-1">Min. Download (Mbps)</label>
         <input
           v-model.number="local.minDownload"
@@ -28,7 +28,7 @@
           class="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500"
         />
       </div>
-      <div>
+      <div class="sm:col-span-3">
         <label class="block text-xs text-gray-400 mb-1">Min. Upload (Mbps)</label>
         <input
           v-model.number="local.minUpload"
@@ -36,7 +36,7 @@
           class="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500"
         />
       </div>
-      <div>
+      <div class="sm:col-span-3">
         <label class="block text-xs text-gray-400 mb-1">Max. Ping (ms)</label>
         <input
           v-model.number="local.maxPing"
@@ -44,7 +44,15 @@
           class="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500"
         />
       </div>
-      <div>
+      <div class="sm:col-span-2">
+        <label class="block text-xs text-gray-400 mb-1">Ordem</label>
+        <input
+          v-model.number="local.sortOrder"
+          type="number" step="1"
+          class="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500"
+        />
+      </div>
+      <div class="sm:col-span-1">
         <label class="block text-xs text-gray-400 mb-1">Cor</label>
         <input
           v-model="local.colorHex"
