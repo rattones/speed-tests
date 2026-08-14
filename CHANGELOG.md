@@ -6,91 +6,40 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ---
 
-## [Unreleased] — F-0003
+## [2.0.0] — 2026-08-13
 
-### Adicionado
-
-#### Frontend
-- `WanCard.vue` — nova prop `orderNumber`; badge numérico circular no header do card exibindo a posição de exibição (`sortOrder`) no carrossel
-- `WanForm.vue` — novo campo "Ordem" (`local.sortOrder`) para editar a posição de exibição de uma WAN diretamente no formulário de criação/edição
-- `ConfigPanel.vue` — texto explicativo abaixo do campo de intervalo de coleta descrevendo o formato cron (`minuto hora dia-do-mês mês dia-da-semana`), o significado de `*` e `*/N`, com exemplo (`*/15 * * * *` = a cada 15 minutos)
-
-### Alterado
-
-#### Frontend
-- `App.vue` — `fetchWans()` passa a propagar `sortOrder` (já retornado pela API, mas descartado antes) e repassá-lo como `order-number` para `wan-card`
-- `WanForm.vue` — grid de limites/cor migrado para 12 colunas (`grid-cols-12`), proporção 3/3/3/2/1 entre Min. Download, Min. Upload, Max. Ping, Ordem e Cor, para caber tudo em uma linha no desktop
-- `ConfigPanel.vue` — `startCreate()` inicializa `sortOrder` da nova WAN com a posição seguinte (`localWans.length`)
-
-### Notas
-- O campo `sort_order` já existia de ponta a ponta no backend desde a F-0002 (tabela, service, DTO da API); esta entrega apenas expõe a leitura e edição dele na UI
-
----
-
-## [Unreleased] — F-0002
+Configuração de WANs migrada de variáveis de ambiente fixas (`WAN1_*`/`WAN2_*`) para cadastro dinâmico via banco de dados e UI — deployments anteriores que dependiam dessas variáveis precisam passar pela migração automática descrita em "Configuração" abaixo. Por isso, major version.
 
 ### Adicionado
 
 #### Backend
-- `db.js` — tabelas `wans` (nome, server ID, cor, limites de alerta, soft delete) e `app_settings` (chave-valor, guarda `cron_interval`); coluna `wan_id` em `speed_tests` (FK estável, substitui o vínculo por `interface_name` livre); migração automática e idempotente que popula `wans`/`app_settings` a partir do `.env` legado na primeira subida, com backfill de `wan_id` nos registros já existentes
+- `db.js` — tabelas `wans` (nome, server ID, cor, limites de alerta, ordem de exibição, soft delete) e `app_settings` (chave-valor, guarda `cron_interval`); coluna `wan_id` em `speed_tests` (FK estável, substitui o vínculo por `interface_name` livre); migração automática e idempotente que popula `wans`/`app_settings` a partir do `.env` legado na primeira subida, com backfill de `wan_id` nos registros já existentes
 - `configService.js` (novo) — módulo central de acesso a config: CRUD de WANs (`getWans`, `createWan`, `updateWan`, `deleteWan`), `getCronInterval`/`setCronInterval`, validação (nome/server ID obrigatórios, cor `#RRGGBB`, limites numéricos)
-- `scheduler.js` — `runCycle()` itera sobre uma lista dinâmica de WANs (`getWans()`) lida a cada disparo, em vez de duas chamadas fixas; `reloadScheduler()` permite trocar o intervalo/lista de WANs em runtime, sem restart
+- `scheduler.js` — `runCycle()` itera sobre uma lista dinâmica de WANs (`getWans()`) lida a cada disparo, em vez de duas chamadas fixas; `reloadScheduler()` permite trocar o intervalo/lista de WANs em runtime, sem restart; `runTest` exportado para reuso externo ao scheduler
 - `routes/config.js` — CRUD completo (`GET/POST/PUT/DELETE /api/config/wans`, `GET/PUT /api/config` para o cron interval); toda mudança dispara `reloadScheduler()`
-- `routes/tests.js` — `POST /api/tests/run` passa a receber `{ wanId }`; `GET /api/tests` filtra por `wan_id` numérico
+- `routes/tests.js` — `GET /api/tests` filtra por `wan_id` numérico
+- `POST /api/tests/run` — endpoint para disparar medição manual de uma WAN específica (`{ wanId }`); retorna 400 (WAN inválida), 503 (server ID não configurado) ou o resultado do teste
+
+#### Frontend
+- `frontend/src/utils/color.js` (novo) — `deriveShades()` deriva os tons de upload/ping a partir da cor de download escolhida pelo usuário (hex → HSL, clareando progressivamente)
+- `ConfigPanel.vue` / `WanForm.vue` (novos) — UI de CRUD de WANs (nome, server ID, cor via `<input type="color">`, limites de alerta, ordem de exibição) com prévia dos tons derivados, edição do intervalo de coleta e texto explicativo do formato cron (`minuto hora dia-do-mês mês dia-da-semana`, `*` e `*/N`, com exemplo)
+- `WanCard.vue` — botão "Medir agora" no rodapé de cada card, com spinner enquanto o teste corre; badge numérico circular no header exibindo a ordem de exibição (`sortOrder`) no carrossel; checkbox para ativar/desativar monitoramento e visibilidade no gráfico
+- `App.vue` — cards de status organizados em carrossel com largura dinâmica e navegação por setas; novo botão de engrenagem no header abre o painel de configuração
 
 ### Alterado
 
 #### Frontend
-- `frontend/src/utils/color.js` (novo) — `deriveShades()` deriva os tons de upload/ping a partir da cor de download escolhida pelo usuário (hex → HSL, clareando progressivamente)
-- `SpeedChart.vue` — props fixas `wan1Tests`/`wan2Tests`/`wan1Name`/`wan2Name` substituídas por uma prop única `wans` (array); séries, cores, eixos e stroke gerados dinamicamente para N WANs
-- `WanCard.vue` — nova prop `color` (acento visual na borda esquerda do card) e `maxPing`
-- `App.vue` — cards de status e gráfico passam a iterar sobre a lista de WANs vinda de `/api/config/wans` (`v-for`), no lugar de dois blocos fixos; novo botão de engrenagem no header abre o painel de configuração
-- `ConfigPanel.vue` / `WanForm.vue` (novos) — UI de CRUD de WANs (nome, server ID, cor via `<input type="color">`, limites) com prévia dos tons derivados, e edição do intervalo de coleta
+- `SpeedChart.vue` — gráfico unificado exibindo download, upload e ping simultaneamente, com cores e eixos gerados dinamicamente para N WANs (prop única `wans`, substitui as props fixas `wan1Tests`/`wan2Tests`); download em linha sólida, upload tracejada, ping pontilhada; eixo Y duplo (Mbps à esquerda, ms à direita); legenda simplificada mostrando só a métrica
+- `WanForm.vue` — grid de limites/cor em 12 colunas, proporção 3/3/3/2/1 entre Min. Download, Min. Upload, Max. Ping, Ordem e Cor
+- Timestamps corrigidos para horário local (`datetime('now', 'localtime')` no SQLite; parse ajustado no frontend) — evita o offset de +3h causado por armazenamento em UTC
 
 #### Configuração
 - `.env.example` / `.env` — removidas `WAN1_*`, `WAN2_*`, `CRON_INTERVAL`; WANs e intervalo de coleta agora são configurados pela UI (ícone ⚙️), persistidos no banco
+- `docker-compose.yml` / `.env` — adicionada variável `TZ=America/Sao_Paulo`
 
 ### Notas
 - Não há mais limite fixo de 2 WANs — quantas forem cadastradas são testadas a cada ciclo
 - Remover uma WAN com histórico faz soft delete (some da UI, testes antigos preservados); sem histórico, remove definitivamente
-
----
-
-## [Unreleased] — B-0001
-
-### Corrigido
-
-#### Infraestrutura
-- `docker-compose.yml` / `.env` — adicionada variável `TZ=America/Sao_Paulo` para que o timezone do container corresponda ao horário local do host
-
-#### Backend
-- `db.js` — `CURRENT_TIMESTAMP` substituído por `datetime('now', 'localtime')` nas tabelas `speed_tests` e `push_subscriptions`; o SQLite sempre armazenava em UTC, gerando +3 h no horário coletado
-- `routes/tests.js` — cláusulas `datetime('now', ?)` ajustadas para `datetime('now', 'localtime', ?)` para manter consistência com os timestamps locais gravados
-- `scheduler.js` — `created_at` passado explicitamente no INSERT com `datetime('now', 'localtime')`, evitando dependência do DEFAULT da tabela (que não é reavaliado pelo `CREATE TABLE IF NOT EXISTS` em bancos já existentes)
-
-#### Frontend
-- `SpeedChart.vue` — `new Date(t.created_at)` substituído por `new Date(t.created_at.replace(' ', 'T'))` para garantir parse como horário local em todos os browsers
-- `WanCard.vue` — mesma correção na função `timeAgo()`
-- `App.vue` — mesma correção na função `timeAgo()`
-
----
-
-## [Unreleased] — F-0001
-
-### Adicionado
-
-#### Backend
-- `scheduler.js` — `runTest` exportado para reuso externo ao scheduler
-- `POST /api/tests/run` — endpoint para disparar medição manual de uma WAN específica; body `{ wan: 'wan1' | 'wan2' }`; retorna 400 (wan inválida), 503 (SERVER_ID não configurado) ou o resultado do teste
-
-#### Frontend
-- `WanCard.vue` — botão "Medir agora" no rodapé de cada card (presente com e sem dados); exibe spinner e texto "Medindo..." enquanto o teste corre; novas props `wanKey` e `measuring`
-- `App.vue` — estado `wan1Measuring`/`wan2Measuring`; método `runTest(wanKey)` chama o endpoint, aguarda conclusão (~30 s) e atualiza os dados automaticamente
-
-### Alterado
-
-#### Frontend
-- `SpeedChart.vue` — gráfico unificado exibindo download, upload e ping simultaneamente em 6 séries; WAN 1 em tons de azul (`#3B82F6`, `#93C5FD`, `#BFDBFE`), WAN 2 em tons de laranja (`#F59E0B`, `#FCD34D`, `#FDE68A`); download em linha sólida, upload tracejada, ping pontilhada; eixo Y duplo (Mbps à esquerda, ms à direita); removidos botões de filtro Download/Upload
 
 ---
 
