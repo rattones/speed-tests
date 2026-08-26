@@ -6,6 +6,15 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ---
 
+## [Não lançado]
+
+### Alterado
+
+#### Frontend
+- `SpeedChart.vue` — eixo Y fixo de 0 a 800 (Mbps para download/upload, ms para ping), mesma régua de valores para as três métricas; tooltip customizado ao passar o mouse agrupa, por WAN, o ponto mais próximo do instante sob o cursor (tolerância de 2min), com separador tracejado entre grupos de WAN
+
+---
+
 ## [2.0.0] — 2026-08-13
 
 Configuração de WANs migrada de variáveis de ambiente fixas (`WAN1_*`/`WAN2_*`) para cadastro dinâmico via banco de dados e UI — deployments anteriores que dependiam dessas variáveis precisam passar pela migração automática descrita em "Configuração" abaixo. Por isso, major version.
