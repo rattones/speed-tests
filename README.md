@@ -1,6 +1,9 @@
 # Speed Monitor
 
-Monitor de velocidade de internet para dois links WAN, com dashboard em tempo real, histórico de medições e alertas via Web Push Notifications.
+Monitor de rede com dashboard em tempo real e histórico de medições, em duas modalidades:
+
+- **WANs** — velocidade dos links de internet (via `speedtest-cli` da Ookla, isolados por Policy Routing no roteador).
+- **Rede Local** — velocidade e latência entre cada computador da rede e este servidor, por toda a rota (WiFi ou cabo), coletadas por um agente que roda na máquina (máquina = WAN no dashboard).
 
 Desenvolvido para uso com roteador **TP-Link Omada ER605** em configuração de load balancer. O isolamento de cada link é feito via **Policy Routing** (Roteamento de Política) no roteador, direcionando o tráfego aos servidores de teste configurados.
 
@@ -12,9 +15,9 @@ Desenvolvido para uso com roteador **TP-Link Omada ER605** em configuração de 
 | Backend | Node.js 20 + Express |
 | Agendador | node-cron |
 | Banco de dados | SQLite3 (better-sqlite3) |
-| Engine de teste | speedtest-cli oficial Ookla |
+| Engine de teste WAN | speedtest-cli oficial Ookla |
+| Engine de teste LAN | endpoints HTTP no próprio backend + agente (bash / PowerShell) |
 | Frontend | Vue 3 (CDN) + Tailwind CSS + ApexCharts |
-| Alertas | Web Push Notifications (VAPID) |
 
 ## Estrutura do Projeto
 
@@ -27,33 +30,45 @@ speed-tests/
 ├── data/                        ← banco SQLite (criado manualmente, ver setup)
 ├── backend/
 │   ├── server.js                ← entry point Express
-│   ├── db.js                    ← inicialização SQLite
-│   ├── scheduler.js             ← cron + execução dos testes
-│   ├── push.js                  ← envio de Web Push (VAPID)
+│   ├── db.js                    ← inicialização SQLite + schema
+│   ├── scheduler.js             ← cron + execução dos testes de WAN
+│   ├── configService.js         ← CRUD de WANs + intervalo de coleta
+│   ├── deviceService.js         ← CRUD de dispositivos + auto-registro (LAN)
+│   ├── lanMeasure.js            ← referência da matemática de medição LAN
 │   ├── package.json
 │   ├── routes/
-│   │   ├── tests.js             ← GET /api/tests
-│   │   ├── config.js            ← GET /api/config
-│   │   └── push.js              ← POST /api/push/register
+│   │   ├── tests.js             ← /api/tests (histórico + teste manual de WAN)
+│   │   ├── config.js            ← /api/config, /api/config/wans
+│   │   └── lan.js               ← /api/lan/* (teste HTTP, results, devices, agente)
 │   └── scripts/
-│       └── run_speedtest.sh     ← wrapper do speedtest-cli
+│       ├── run_speedtest.sh     ← wrapper do speedtest-cli
+│       ├── lan-monitor.sh       ← agente de rede local (Linux/macOS)
+│       └── lan-monitor.ps1      ← agente de rede local (Windows)
 └── frontend/
     ├── index.html
-    ├── sw.js                    ← Service Worker (push)
     └── src/
         ├── main.js
-        ├── App.vue
+        ├── App.vue              ← header + seletor de abas
+        ├── lanMeasure.js        ← medição LAN pelo navegador
+        ├── utils/
+        │   └── color.js         ← derivação de tons a partir da cor de acento
         └── components/
-            ├── WanCard.vue      ← card de status por WAN
+            ├── WanTab.vue       ← aba WANs (cards + gráfico)
+            ├── LanTab.vue       ← aba Rede Local (cards + gráfico + teste no navegador)
+            ├── WanCard.vue      ← card de status (WAN ou dispositivo)
             ├── SpeedChart.vue   ← gráfico ApexCharts
-            └── AlertButton.vue  ← ativar push notifications
+            ├── ConfigPanel.vue  ← configurações (WANs, cron, dispositivos)
+            ├── WanForm.vue      ← form de WAN
+            ├── DeviceForm.vue   ← form de dispositivo
+            ├── ServerIpModal.vue← rota estática ao mudar Server ID de WAN
+            └── LanHelpModal.vue ← instruções para instalar o agente
 ```
 
 ## Pré-requisitos
 
 - Docker e Docker Compose instalados na máquina host
-- Acesso à internet para instalar o speedtest-cli no build e para os testes
-- Dois links WAN conectados ao roteador TP-Link Omada ER605
+- Acesso à internet para instalar o speedtest-cli no build e para os testes de WAN
+- Para o monitoramento de rede local: a porta `8020` acessível na LAN a partir dos computadores monitorados
 
 ## Setup
 
@@ -117,6 +132,52 @@ A ordem de exibição (campo "Ordem") define a posição do card de cada WAN no 
 
 Não há limite fixo de WANs — quantas forem cadastradas serão testadas a cada ciclo.
 
+### 7. Monitorar a rede local
+
+Na aba **Rede Local** do dashboard:
+
+- **Testar deste computador** — roda uma medição na hora, direto pelo navegador. O resultado é só exibido, **não é salvo** nem cria dispositivo.
+- **Monitorar um computador** — abre as instruções para instalar o agente numa máquina. O agente:
+  - identifica a máquina pelo **MAC address** da interface de rede ativa (a máquina se cadastra sozinha na primeira medição);
+  - mede download/upload/ping/jitter contra este servidor e envia o resultado periodicamente;
+  - cada máquina vira um card + uma linha no gráfico, igual a uma WAN.
+
+Baixe o agente pela própria tela ou diretamente:
+
+```bash
+# Linux / macOS
+curl -fsSL http://<ip-do-host>:8020/api/lan/agent/linux -o lan-monitor.sh
+chmod +x lan-monitor.sh
+./lan-monitor.sh --server http://<ip-do-host>:8020 --once --name "Notebook Sala"   # medição de teste
+
+# instalar como serviço de auto-início (volta sozinho após reboot):
+./lan-monitor.sh --server http://<ip-do-host>:8020 --interval 300 --name "Notebook Sala" --install
+# parar e remover:
+./lan-monitor.sh --uninstall
+
+# Windows (PowerShell)
+Invoke-WebRequest http://<ip-do-host>:8020/api/lan/agent/windows -OutFile lan-monitor.ps1
+powershell -ExecutionPolicy Bypass -File .\lan-monitor.ps1 -Server http://<ip-do-host>:8020 -Once -Name "PC Sala"
+powershell -ExecutionPolicy Bypass -File .\lan-monitor.ps1 -Server http://<ip-do-host>:8020 -Interval 300 -Name "PC Sala" -Install
+powershell -ExecutionPolicy Bypass -File .\lan-monitor.ps1 -Uninstall
+```
+
+Os scripts só usam ferramentas nativas do sistema (`curl`/coreutils no Linux/macOS, cmdlets padrão no Windows) — sem dependências.
+
+- `--install` / `-Install` configura o auto-início: **serviço `systemd --user`** (Linux, com `Restart=always`; rode `sudo loginctl enable-linger $USER` uma vez para rodar sem sessão aberta), **LaunchAgent** (macOS) ou **Tarefa Agendada** com gatilho "Ao fazer logon" (Windows). Não é preciso recriar nada a cada reboot.
+- `--uninstall` / `-Uninstall` para o serviço e remove a unidade/tarefa e a cópia do script.
+
+Depois de remover na máquina, tire o card no dashboard pelo ícone **⚙️** → "Dispositivos da rede local" → **Remover** (histórico preservado; "Remover" de novo apaga em definitivo) ou **Desativar** (pausa sem perder o histórico). Nome, cor, ordem e limites de alerta de cada dispositivo também são ajustados aí.
+
+Cada payload enviado (e a resposta do servidor) é registrado num log de diagnóstico com rotação em ~10 KB:
+
+| SO | Caminho |
+|---|---|
+| Linux / macOS | `~/.local/share/lan-monitor/payloads.log` (sobrescrevível com `LOG_FILE=`) |
+| Windows | `%LOCALAPPDATA%\SpeedMonitor\payloads.log` |
+
+> A porta `8020` precisa estar acessível na rede local a partir dos computadores monitorados.
+
 ## Uso
 
 ### Iniciar / parar
@@ -165,7 +226,21 @@ docker exec -it speed-tests sh -c "
 | POST | `/api/config/wans` | Cria uma WAN |
 | PUT | `/api/config/wans/:id` | Atualiza uma WAN |
 | DELETE | `/api/config/wans/:id` | Remove uma WAN (soft delete se houver histórico; `?force=1` força remoção definitiva) |
-| POST | `/api/push/register` | Registra subscription de push notification |
+
+### Rede Local
+
+| Método | Endpoint | Descrição |
+|---|---|---|
+| GET | `/api/lan/ping` | Resposta vazia (204) — usada para medir RTT |
+| GET | `/api/lan/download?bytes=N` | Envia N bytes aleatórios (cap `LAN_TEST_MAX_BYTES`) |
+| POST | `/api/lan/upload` | Consome e cronometra o corpo; retorna `{ bytes, ms }` |
+| POST | `/api/lan/results` | Ingestão do agente: `{ machineId, hostname, os, connType, download, upload, ping, jitter, name? }` |
+| GET | `/api/lan/tests?days=7` | Histórico de medições LAN (`?from&to`, `?device=<id>` — mesma assinatura de `/api/tests`) |
+| GET | `/api/lan/devices` | Lista dispositivos (`?all=1` inclui removidos) |
+| POST | `/api/lan/devices` | Cria um dispositivo manualmente |
+| PUT | `/api/lan/devices/:id` | Atualiza nome/cor/ordem/limites/ativo |
+| DELETE | `/api/lan/devices/:id` | Remove (soft delete se houver histórico; `?force=1` força) |
+| GET | `/api/lan/agent/:os` | Baixa o agente (`linux`, `macos` ou `windows`) |
 
 ## Banco de Dados
 
@@ -199,13 +274,27 @@ Arquivo SQLite em `./data/speed_tests.db`. Tabelas:
 | `key` | TEXT | Chave (ex.: `cron_interval`) |
 | `value` | TEXT | Valor |
 
-**`push_subscriptions`**
+**`devices`** (rede local)
 | Campo | Tipo | Descrição |
 |---|---|---|
 | `id` | INTEGER | PK auto-increment |
-| `endpoint` | TEXT | URL de push (único) |
-| `subscription_json` | TEXT | Objeto de subscription serializado |
-| `created_at` | DATETIME | Data de registro |
+| `machine_id` | TEXT | MAC normalizado (`aabbccddeeff`), único — identifica a máquina |
+| `name` | TEXT | Nome de exibição (padrão = hostname; editável) |
+| `hostname` / `os` / `conn_type` | TEXT | Metadados enviados pelo agente (`wifi`/`ethernet`, `linux`/`windows`/`macos`) |
+| `color_hex` | TEXT | Cor de acento (`#RRGGBB`) |
+| `min_download` / `min_upload` / `max_ping` | REAL | Limites de alerta |
+| `sort_order` | INTEGER | Posição do card no dashboard |
+| `active` | INTEGER | 0 = removido (soft delete, histórico preservado) |
+| `last_seen_at` | DATETIME | Último check-in do agente |
+
+**`lan_tests`** (rede local)
+| Campo | Tipo | Descrição |
+|---|---|---|
+| `id` | INTEGER | PK auto-increment |
+| `device_id` | INTEGER | FK para `devices.id` |
+| `device_name` | TEXT | Nome do dispositivo no momento da medição (snapshot) |
+| `download_mbps` / `upload_mbps` / `ping_ms` / `jitter_ms` | REAL | Métricas medidas |
+| `created_at` | DATETIME | Timestamp da medição |
 
 ## Variáveis de Ambiente
 
@@ -214,22 +303,18 @@ Arquivo SQLite em `./data/speed_tests.db`. Tabelas:
 | `PORT` | `8020` | Porta do servidor HTTP |
 | `TZ` | — | Timezone do container |
 | `DB_PATH` | `/data/speed_tests.db` | Caminho do banco SQLite no container |
+| `LAN_TEST_MAX_BYTES` | `104857600` | Tamanho máx. (bytes) dos endpoints de teste de rede local |
 
 WANs e intervalo de coleta não são mais configurados por variável de ambiente — ver "Configurar WANs" acima.
 
-## Alertas Push
+## Limites de alerta
 
-1. No dashboard, clique em **"Ativar Alertas"**
-2. A subscription é registrada via `POST /api/push/register`
-3. Sempre que um teste registrar velocidade abaixo dos limites definidos no `.env`, uma notificação é enviada para todos os browsers registrados
-4. Subscriptions expiradas (HTTP 410/404) são removidas automaticamente do banco
-
-> As chaves VAPID são necessárias para push notifications. Se não estiverem configuradas, o sistema funciona normalmente — apenas sem alertas.
+Cada WAN e cada dispositivo tem limites configuráveis de **download mínimo**, **upload mínimo** e **ping máximo** (⚙️ na UI). Quando uma medição fica abaixo do esperado, o card fica com o indicador vermelho e o valor destacado; limite `0` desativa a checagem daquela métrica.
 
 ## Segurança
 
 - Credenciais ficam exclusivamente no `.env`, que está no `.gitignore`
 - O banco SQLite (`./data/`) também está no `.gitignore`
-- A chave privada VAPID nunca é exposta pela API
 - Todos os inputs recebidos via HTTP são validados com prepared statements (proteção contra SQL injection)
 - O arquivo `.env` é montado no container como somente leitura (`:ro`)
+- Os endpoints de teste de rede local (`/api/lan/download`, `/api/lan/upload`) têm o volume limitado por `LAN_TEST_MAX_BYTES`

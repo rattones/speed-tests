@@ -44,6 +44,39 @@ db.exec(`
     value       TEXT NOT NULL,
     updated_at  DATETIME DEFAULT (datetime('now', 'localtime'))
   );
+
+  -- ── Monitoramento de rede local (máquina = WAN) ──────────────────────────
+  CREATE TABLE IF NOT EXISTS devices (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    machine_id   TEXT    NOT NULL UNIQUE,   -- MAC normalizado (aabbccddeeff)
+    name         TEXT    NOT NULL,          -- default = hostname; editável pela UI
+    hostname     TEXT,
+    os           TEXT,                      -- 'linux' | 'windows' | 'macos'
+    conn_type    TEXT,                      -- 'wifi' | 'ethernet' | 'unknown'
+    color_hex    TEXT    NOT NULL DEFAULT '#10B981',
+    min_download REAL    NOT NULL DEFAULT 0,
+    min_upload   REAL    NOT NULL DEFAULT 0,
+    max_ping     REAL    NOT NULL DEFAULT 0,
+    sort_order   INTEGER NOT NULL DEFAULT 0,
+    active       INTEGER NOT NULL DEFAULT 1,
+    last_seen_at DATETIME,
+    created_at   DATETIME DEFAULT (datetime('now', 'localtime')),
+    updated_at   DATETIME DEFAULT (datetime('now', 'localtime'))
+  );
+
+  CREATE TABLE IF NOT EXISTS lan_tests (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    device_id     INTEGER REFERENCES devices(id),
+    device_name   TEXT    NOT NULL,         -- snapshot histórico (espelha speed_tests.interface_name)
+    download_mbps REAL    NOT NULL,
+    upload_mbps   REAL    NOT NULL,
+    ping_ms       REAL    NOT NULL,
+    jitter_ms     REAL,
+    created_at    DATETIME DEFAULT (datetime('now', 'localtime'))
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_lan_tests_device_id  ON lan_tests(device_id);
+  CREATE INDEX IF NOT EXISTS idx_lan_tests_created_at ON lan_tests(created_at);
 `);
 
 // ── Migração: coluna wan_id em speed_tests (vínculo estável com a tabela wans) ──

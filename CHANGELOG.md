@@ -6,6 +6,51 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ---
 
+## [Não lançado]
+
+### Adicionado
+
+#### Monitoramento de rede local (máquina = WAN)
+
+Nova modalidade que mede a velocidade e a latência entre cada computador da rede
+e este servidor, por toda a rota (WiFi ou cabo). Cada máquina se comporta como
+uma WAN: card de status + linha no gráfico de histórico, numa aba separada.
+O próprio servidor é o alvo do teste (endpoints HTTP), não a Ookla.
+
+##### Backend
+- `db.js` — tabelas `devices` (MAC normalizado como `machine_id` único, nome/cor/ordem/limites editáveis, soft delete, `last_seen_at`) e `lan_tests` (histórico por dispositivo, com `jitter_ms`); espelham o par `wans`/`speed_tests`
+- `deviceService.js` (novo) — CRUD de dispositivos e `upsertDevice()` (auto-registro no primeiro resultado; check-ins posteriores só atualizam metadados de sistema, nunca nome/cor); paleta de cores rotativa para novos dispositivos
+- `routes/lan.js` (novo), montado em `/api/lan` **antes** do `express.json()` global:
+  - `GET /api/lan/ping` (204), `GET /api/lan/download?bytes=N` (stream de bytes aleatórios, cap `LAN_TEST_MAX_BYTES`), `POST /api/lan/upload` (consome e cronometra) — engine de teste HTTP
+  - `POST /api/lan/results` — ingestão do agente (`{ machineId, hostname, os, connType, download, upload, ping, jitter, name? }`); responde `400` com detalhe e loga o corpo cru quando o JSON é inválido; `num()` aceita vírgula decimal
+  - `GET /api/lan/tests` — histórico (mesma assinatura de `/api/tests`: `?days`, `?from&to`, `?device`)
+  - `GET/POST/PUT/DELETE /api/lan/devices` — CRUD (DTO camelCase, soft/hard delete como as WANs)
+  - `GET /api/lan/agent/:os` — baixa `lan-monitor.sh` (linux/macos) ou `lan-monitor.ps1` (windows)
+- `lanMeasure.js` (novo) — referência única da matemática de medição (ping/download/upload → Mbps/jitter)
+- `scripts/lan-monitor.sh` (novo) — agente Linux/macOS, só `curl` + coreutils: detecta MAC e tipo de conexão da interface default, loop com `--interval`, flags `--server`/`--once`/`--name`. `--install` cria e ativa auto-início (serviço `systemd --user` com `Restart=always` + lingering no Linux; `LaunchAgent` com `KeepAlive` no macOS); `--uninstall` remove tudo. Locale forçado a `C` (separador decimal ponto); log de payloads em `~/.local/share/lan-monitor/payloads.log` (rotação em ~10 KB, sobrescrevível via `LOG_FILE=`)
+- `scripts/lan-monitor.ps1` (novo) — agente Windows (PowerShell 5.1+), sem dependências: `Get-NetAdapter` para MAC/tipo, `System.Net.WebRequest` para os testes (nativo do .NET Framework — evita o `HttpClient` indisponível no PS 5.1), `InvariantCulture` no `ConvertTo-Json`. `-Install` registra Tarefa Agendada (`SpeedMonitor-LanMonitor`, gatilho "Ao fazer logon", janela oculta, reinício automático); `-Uninstall` remove. Log de payloads em `%LOCALAPPDATA%\SpeedMonitor\payloads.log` (rotação em ~10 KB)
+
+##### Frontend
+- `App.vue` — seletor de abas no header (**WANs** | **Rede Local**); conteúdo das WANs extraído para `WanTab.vue`, sem mudança de comportamento
+- `WanTab.vue` (novo) — corpo do dashboard de WANs (cards + gráfico + janela de 24h + busca por data), antes embutido no `App.vue`
+- `LanTab.vue` (novo) — espelha o `WanTab`, reusando `WanCard.vue` e `SpeedChart.vue` sem alteração; botão **"Testar deste computador"** roda um teste efêmero pelo navegador (só exibição, não persiste); botão **"Monitorar um computador"** abre as instruções
+- `LanHelpModal.vue` (novo) — passo a passo por SO (Linux/macOS/Windows) com link de download do agente e comandos prontos apontando para a origem deste servidor: medição de teste, instalação como auto-início (`--install`), remoção (`--uninstall` + "Remover"/"Desativar" no dashboard) e caixa de diagnóstico com o caminho do log de payloads
+- `DeviceForm.vue` (novo) — formulário de edição de dispositivo (cópia enxuta do `WanForm.vue`, sem Server ID)
+- `ConfigPanel.vue` — nova seção "Dispositivos da rede local" (ativar/desativar/editar/remover), espelhando "WANs monitoradas"; deixou de receber a prop `wans` do `App.vue` (já buscava por conta própria)
+- `WanCard.vue` — props opcionais `canRunTest` (oculta "Medir agora") e `subtitle` (tipo de conexão · SO · visto há…); comportamento das WANs inalterado
+- `lanMeasure.js` (novo) — versão browser da medição, exposta em `window.__LAN_MEASURE__`
+
+##### Configuração
+- `.env` / `.env.example` — nova variável `LAN_TEST_MAX_BYTES` (padrão 100 MB), cap dos endpoints de teste de rede local
+- `Dockerfile` / `docker-compose.yml` — sem alteração (scripts ficam em `backend/scripts/`, já copiada/montada)
+
+### Alterado
+
+#### Frontend
+- `SpeedChart.vue` — eixo Y fixo de 0 a 800 (Mbps para download/upload, ms para ping), mesma régua de valores para as três métricas; tooltip customizado ao passar o mouse agrupa, por WAN, o ponto mais próximo do instante sob o cursor (tolerância de 2min), com separador tracejado entre grupos de WAN
+
+---
+
 ## [2.0.0] — 2026-08-13
 
 Configuração de WANs migrada de variáveis de ambiente fixas (`WAN1_*`/`WAN2_*`) para cadastro dinâmico via banco de dados e UI — deployments anteriores que dependiam dessas variáveis precisam passar pela migração automática descrita em "Configuração" abaixo. Por isso, major version.

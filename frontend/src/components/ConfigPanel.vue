@@ -92,6 +92,61 @@
           </div>
         </section>
 
+        <!-- Lista de dispositivos da rede local -->
+        <section>
+          <h3 class="text-sm font-semibold text-gray-300 mb-1">Dispositivos da rede local</h3>
+          <p class="text-xs text-gray-500 mb-3">
+            Cadastrados automaticamente quando o agente envia a primeira medição. Aqui você
+            ajusta nome, cor, ordem e limites de alerta.
+          </p>
+
+          <div v-if="!localDevices.length" class="text-xs text-gray-500 bg-gray-750 border border-gray-700 rounded-lg px-4 py-3">
+            Nenhum dispositivo ainda. Use "Monitorar um computador" na aba Rede Local.
+          </div>
+
+          <div class="space-y-3">
+            <div v-for="d in localDevices" :key="d.id">
+              <device-form
+                v-if="editingDevice && editingDevice.id === d.id"
+                :device="editingDevice"
+                :saving="saving"
+                @save="saveDevice"
+                @cancel="editingDevice = null"
+              />
+              <div
+                v-else
+                class="flex items-center justify-between gap-3 bg-gray-750 border border-gray-700 rounded-lg px-4 py-3"
+                :class="{ 'opacity-50': !d.active }"
+              >
+                <div class="flex items-center gap-3 min-w-0">
+                  <span class="w-4 h-4 rounded-full flex-shrink-0" :style="{ backgroundColor: d.colorHex }"></span>
+                  <div class="min-w-0">
+                    <p class="text-white font-medium truncate">
+                      {{ d.name }}
+                      <span v-if="!d.active" class="text-xs text-gray-500 font-normal">(monitoramento desativado)</span>
+                    </p>
+                    <p class="text-xs text-gray-400 truncate">
+                      {{ d.machineId }}
+                      <span v-if="d.connType && d.connType !== 'unknown'"> · {{ d.connType === 'wifi' ? 'WiFi' : 'Cabo' }}</span>
+                      <span v-if="d.os"> · {{ d.os }}</span>
+                      · min ↓{{ d.minDownload }} ↑{{ d.minUpload }} Mbps · max ping {{ d.maxPing }}ms
+                    </p>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2 flex-shrink-0">
+                  <button
+                    @click="toggleDeviceActive(d)"
+                    :class="d.active ? 'text-yellow-400 hover:text-yellow-300' : 'text-green-400 hover:text-green-300'"
+                    class="text-sm transition-colors"
+                  >{{ d.active ? 'Desativar' : 'Ativar' }}</button>
+                  <button @click="startEditDevice(d)" class="text-sm text-blue-400 hover:text-blue-300 transition-colors">Editar</button>
+                  <button @click="deleteDevice(d)" class="text-sm text-red-400 hover:text-red-300 transition-colors">Remover</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <p v-if="errorMsg" class="text-sm text-red-400">{{ errorMsg }}</p>
 
       </div>
@@ -108,29 +163,29 @@ export default {
   emits: ['close', 'changed'],
 
   components: {
-    WanForm: defineAsyncComponent(() => loadModule('/src/components/WanForm.vue', options)),
+    WanForm:    defineAsyncComponent(() => loadModule('/src/components/WanForm.vue', options)),
+    DeviceForm: defineAsyncComponent(() => loadModule('/src/components/DeviceForm.vue', options)),
   },
 
   props: {
-    wans:         { type: Array,  required: true },
     cronInterval: { type: String, required: true },
   },
 
   data() {
     return {
-      localCron:  this.cronInterval,
-      localWans:  this.wans,
-      editingWan: null,
-      newWan:     null,
-      saving:     false,
-      errorMsg:   '',
+      localCron:     this.cronInterval,
+      localWans:     [],
+      localDevices:  [],
+      editingWan:    null,
+      newWan:        null,
+      editingDevice: null,
+      saving:        false,
+      errorMsg:      '',
     };
   },
 
   async mounted() {
-    // A prop `wans` do App.vue só traz WANs ativas (usadas nos cards/gráfico);
-    // aqui precisamos também das desativadas, para poder reativá-las.
-    await this.fetchAllWans();
+    await Promise.all([this.fetchAllWans(), this.fetchAllDevices()]);
   },
 
   methods: {
@@ -233,6 +288,80 @@ export default {
         this.errorMsg = err.message;
       } finally {
         this.saving = false;
+      }
+    },
+
+    // ── Dispositivos da rede local ──────────────────────────────────────────
+    async fetchAllDevices() {
+      try {
+        const res = await fetch('/api/lan/devices?all=1');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        this.localDevices = json.data;
+      } catch (err) {
+        console.error('[ConfigPanel] Erro ao carregar dispositivos:', err);
+      }
+    },
+
+    startEditDevice(device) {
+      this.editingDevice = { ...device };
+    },
+
+    async toggleDeviceActive(device) {
+      this.errorMsg = '';
+      try {
+        const res = await fetch(`/api/lan/devices/${device.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...device, active: !device.active }),
+        });
+        if (!res.ok) {
+          const e = await res.json().catch(() => ({}));
+          throw new Error(e.error || `HTTP ${res.status}`);
+        }
+        await this.fetchAllDevices();
+        this.$emit('changed');
+      } catch (err) {
+        this.errorMsg = err.message;
+      }
+    },
+
+    async saveDevice(device) {
+      this.saving = true;
+      this.errorMsg = '';
+      try {
+        const res = await fetch(`/api/lan/devices/${device.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(device),
+        });
+        if (!res.ok) {
+          const e = await res.json().catch(() => ({}));
+          throw new Error(e.error || `HTTP ${res.status}`);
+        }
+        this.editingDevice = null;
+        await this.fetchAllDevices();
+        this.$emit('changed');
+      } catch (err) {
+        this.errorMsg = err.message;
+      } finally {
+        this.saving = false;
+      }
+    },
+
+    async deleteDevice(device) {
+      if (!confirm(`Remover ${device.name}? O histórico de medições será preservado.`)) return;
+      this.errorMsg = '';
+      try {
+        const res = await fetch(`/api/lan/devices/${device.id}`, { method: 'DELETE' });
+        if (!res.ok) {
+          const e = await res.json().catch(() => ({}));
+          throw new Error(e.error || `HTTP ${res.status}`);
+        }
+        await this.fetchAllDevices();
+        this.$emit('changed');
+      } catch (err) {
+        this.errorMsg = err.message;
       }
     },
   },

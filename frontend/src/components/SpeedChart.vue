@@ -232,16 +232,18 @@ export default {
             seriesName: `${w.name} - Download`,
             show:       isFirst,
             min:        0,
+            max:        800,
             labels: isFirst
               ? { style: { colors: '#9CA3AF' }, formatter: (v) => `${v.toFixed(1)} Mbps` }
               : hiddenLabels,
           },
-          { seriesName: `${w.name} - Upload`, show: false, labels: hiddenLabels },
+          { seriesName: `${w.name} - Upload`, show: false, min: 0, max: 800, labels: hiddenLabels },
           {
             seriesName: `${w.name} - Ping`,
             show:       isFirst,
             opposite:   true,
             min:        0,
+            max:        800,
             labels: isFirst
               ? { style: { colors: '#9CA3AF' }, formatter: (v) => `${v.toFixed(0)} ms` }
               : hiddenLabels,
@@ -271,14 +273,9 @@ export default {
         },
         yaxis,
         tooltip: {
-          x: { format: 'dd/MM HH:mm' },
-          y: {
-            formatter: (val, { seriesIndex }) =>
-              seriesIndex % 3 === 2
-                ? `${val.toFixed(0)} ms`
-                : `${val.toFixed(1)} Mbps`,
-          },
           theme: 'dark',
+          shared: true,
+          custom: (opts) => this.buildTooltip(opts),
         },
         grid: {
           borderColor:    '#374151',
@@ -299,6 +296,65 @@ export default {
     onSearch() {
       if (!this.filterValid) return;
       this.$emit('search', { from: this.filterFrom, to: this.filterTo });
+    },
+
+    // Monta um tooltip customizado agrupando, para cada série, o ponto mais
+    // próximo do timestamp sob o cursor (tolerância de 1min), já que cada WAN
+    // tem seus testes em instantes ligeiramente diferentes.
+    buildTooltip({ series, seriesIndex, dataPointIndex, w }) {
+      const TOLERANCE_MS = 120 * 1000;
+      const allSeries = w.config.series;
+      const hoveredX = allSeries[seriesIndex]?.data[dataPointIndex]?.x;
+      if (hoveredX == null) return '';
+
+      const rows = allSeries.map((s, i) => {
+        const data = s.data;
+        let closest = null;
+        let closestDiff = Infinity;
+        for (const point of data) {
+          const diff = Math.abs(point.x - hoveredX);
+          if (diff < closestDiff) {
+            closestDiff = diff;
+            closest = point;
+          }
+        }
+        if (!closest || closestDiff > TOLERANCE_MS) return null;
+        const isPing = i % 3 === 2;
+        const value = isPing ? `${closest.y.toFixed(0)} ms` : `${closest.y.toFixed(1)} Mbps`;
+        const color = w.globals.colors[i];
+        const wanName = s.name.replace(/ - .*$/, '');
+        return { wanName, name: s.name, value, color };
+      }).filter(Boolean);
+
+      if (!rows.length) return '';
+
+      const dateLabel = new Date(hoveredX).toLocaleString('pt-BR', {
+        day:    '2-digit',
+        month:  '2-digit',
+        hour:   '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      });
+
+      const groupSeparator = '<hr style="border:none; border-top:1px dashed #374151; margin:2px 0;">';
+      const rowsHtml = rows.map((r, i) => {
+        const isNewGroup = i > 0 && r.wanName !== rows[i - 1].wanName;
+        const separator = isNewGroup ? groupSeparator : '';
+        return `${separator}
+        <div style="display:flex; align-items:center; gap:6px; padding:2px 0;">
+          <span style="width:10px; height:10px; border-radius:2px; background:${r.color}; display:inline-block; flex-shrink:0;"></span>
+          <span style="color:#D1D5DB;">${r.name.replace(/^.*- /, '')}</span>
+          <span style="color:#F3F4F6; margin-left:auto; font-weight:600;">${r.value}</span>
+        </div>
+      `;
+      }).join('');
+
+      return `
+        <div style="background:#1F2937; border:1px solid #374151; border-radius:6px; padding:8px 10px; min-width:180px;">
+          <div style="color:#9CA3AF; font-size:11px; margin-bottom:4px; border-bottom:1px solid #374151; padding-bottom:4px;">${dateLabel}</div>
+          ${rowsHtml}
+        </div>
+      `;
     },
   },
 };
