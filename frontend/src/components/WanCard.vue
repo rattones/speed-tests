@@ -15,7 +15,10 @@
           class="flex items-center justify-center w-5 h-5 rounded-full bg-gray-700 text-gray-300 text-xs font-semibold flex-shrink-0"
           title="Ordem de exibição"
         >{{ orderNumber }}</span>
-        <h3 class="text-lg font-bold text-white truncate">{{ wanName.replace('_', ' ') }}</h3>
+        <div class="min-w-0">
+          <h3 class="text-lg font-bold text-white truncate">{{ wanName.replace('_', ' ') }}</h3>
+          <p v-if="subtitle" class="text-xs text-gray-500 truncate">{{ subtitle }}</p>
+        </div>
       </label>
       <span
         class="w-3 h-3 rounded-full flex-shrink-0"
@@ -28,6 +31,7 @@
     <div v-if="!latestTest" class="py-4 flex flex-col items-center gap-3">
       <span class="text-gray-400 text-sm">Nenhum teste realizado ainda</span>
       <button
+        v-if="canRunTest"
         class="flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium transition-colors"
         :class="measuring
           ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
@@ -69,6 +73,7 @@
       <div class="pt-2 border-t border-gray-700 flex items-center justify-between">
         <span class="text-xs text-gray-500">{{ timeAgo(latestTest.created_at) }}</span>
         <button
+          v-if="canRunTest"
           class="flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium transition-colors"
           :class="measuring
             ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
@@ -101,6 +106,8 @@ export default {
     maxPing:     { type: Number,  default: 0 },
     measuring:   { type: Boolean, default: false },
     visible:     { type: Boolean, default: true },
+    canRunTest:  { type: Boolean, default: true },
+    subtitle:    { type: String,  default: '' },
   },
 
   computed: {
