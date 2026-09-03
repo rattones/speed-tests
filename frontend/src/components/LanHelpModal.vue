@@ -74,10 +74,8 @@
             <p class="mt-2 text-xs text-gray-500">
               Depois, aqui no dashboard, abra <span class="font-mono">⚙️</span> →
               <strong>Dispositivos da rede local</strong> e clique em <strong>Remover</strong>
-              no dispositivo. O histórico é preservado (o card só some); clicar em
-              <strong>Remover</strong> de novo, com o dispositivo já sem novas medições,
-              apaga tudo em definitivo. Para só pausar sem perder o histórico, use
-              <strong>Desativar</strong>.
+              no dispositivo — apaga o card e todo o histórico de medições em definitivo.
+              Para só pausar sem perder o histórico, use <strong>Desativar</strong>.
             </p>
           </li>
         </ol>

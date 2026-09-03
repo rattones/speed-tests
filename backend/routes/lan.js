@@ -258,8 +258,7 @@ router.put('/devices/:id', jsonBody, (req, res) => {
 
 router.delete('/devices/:id', (req, res) => {
   try {
-    const force = req.query.force === '1';
-    const result = deviceService.deleteDevice(Number(req.params.id), { force });
+    const result = deviceService.deleteDevice(Number(req.params.id));
     res.json(result);
   } catch (err) {
     handleError(res, err);

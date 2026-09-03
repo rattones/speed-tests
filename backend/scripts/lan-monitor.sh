@@ -38,8 +38,8 @@
 #   ./lan-monitor.sh --uninstall
 #     Para o serviço e remove a unidade/plist e a cópia do script.
 #   Depois, no dashboard (⚙️ → Dispositivos da rede local), clique em "Remover"
-#   para tirar o card. O histórico é preservado (soft delete); "Remover" de novo
-#   com o dispositivo já sem novas medições apaga em definitivo.
+#   para apagar o card e todo o histórico de medições em definitivo. Para só
+#   pausar sem perder o histórico, use "Desativar".
 #
 # LOG DE DIAGNÓSTICO:
 #   Cada payload enviado (e a resposta do servidor) é gravado em

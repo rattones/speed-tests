@@ -35,8 +35,9 @@
  PARAR / REMOVER o monitoramento:
    powershell -ExecutionPolicy Bypass -File .\lan-monitor.ps1 -Uninstall
    Para a tarefa, remove-a e apaga a copia do script. Depois, no dashboard
-   (engrenagem -> Dispositivos da rede local), clique em "Remover" para tirar o
-   card (o historico e preservado; "Remover" de novo apaga em definitivo).
+   (engrenagem -> Dispositivos da rede local), clique em "Remover" para apagar
+   o card e todo o historico de medicoes em definitivo. Para so pausar sem
+   perder o historico, use "Desativar".
 
  LOG DE DIAGNOSTICO:
    Cada payload enviado (e a resposta do servidor) e gravado em

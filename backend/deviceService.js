@@ -54,11 +54,8 @@ const updateDeviceStmt = db.prepare(`
   WHERE id = @id
 `);
 
-const softDeleteDeviceStmt = db.prepare(
-  `UPDATE devices SET active = 0, updated_at = datetime('now', 'localtime') WHERE id = ?`
-);
 const hardDeleteDeviceStmt = db.prepare(`DELETE FROM devices WHERE id = ?`);
-const clearDeviceIdStmt = db.prepare(`UPDATE lan_tests SET device_id = NULL WHERE device_id = ?`);
+const deleteTestsForDeviceStmt = db.prepare(`DELETE FROM lan_tests WHERE device_id = ?`);
 const countTestsForDevice = db.prepare(`SELECT COUNT(*) AS n FROM lan_tests WHERE device_id = ?`);
 
 function getDevices({ includeInactive = false } = {}) {
@@ -174,19 +171,16 @@ function updateDevice(id, data) {
   return getDeviceById(id);
 }
 
-function deleteDevice(id, { force = false } = {}) {
+// Remove o dispositivo e todo o seu histórico de medições em definitivo —
+// diferente de WANs, aqui não há soft delete: "Remover" apaga tudo de uma vez.
+function deleteDevice(id) {
   const existing = getDeviceById(id);
   if (!existing) throw new NotFoundError('Dispositivo não encontrado');
 
   const { n: testCount } = countTestsForDevice.get(id);
 
-  if (testCount > 0 && !force) {
-    softDeleteDeviceStmt.run(id);
-    return { deleted: 'soft', testCount };
-  }
-
   const tx = db.transaction(() => {
-    if (testCount > 0) clearDeviceIdStmt.run(id);
+    if (testCount > 0) deleteTestsForDeviceStmt.run(id);
     hardDeleteDeviceStmt.run(id);
   });
   tx();
