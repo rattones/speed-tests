@@ -15,15 +15,22 @@
    .\lan-monitor.ps1 -Server http://192.168.1.10:8020 -Once           # uma medicao
    .\lan-monitor.ps1 -Server http://192.168.1.10:8020 -Interval 60 -Name "PC Sala"
 
+ Se -Interval nao for informado, o intervalo e obtido automaticamente do
+ servidor (GET /api/config, campo cronInterval -- o mesmo intervalo de coleta
+ configurado para as WANs), convertido para segundos. Se nao for possivel
+ obter, usa 300s (5 min).
+
  Se a execucao de scripts estiver bloqueada:
    powershell -ExecutionPolicy Bypass -File .\lan-monitor.ps1 -Server http://192.168.1.10:8020
 
  INICIAR JUNTO COM O WINDOWS (recomendado):
    powershell -ExecutionPolicy Bypass -File .\lan-monitor.ps1 `
-     -Server http://192.168.1.10:8020 -Interval 300 -Name "PC Sala" -Install
+     -Server http://192.168.1.10:8020 -Name "PC Sala" -Install
    Cria uma Tarefa Agendada "SpeedMonitor-LanMonitor" com gatilho "Ao fazer logon",
    que roda em janela oculta e e reiniciada pelo Windows se cair. O script e copiado
    para %LOCALAPPDATA%\SpeedMonitor\ -- pode apagar o arquivo baixado depois.
+   O intervalo e resolvido nesse momento (a partir do cronInterval do servidor,
+   a menos que -Interval tenha sido informado) e gravado fixo na tarefa instalada.
 
  PARAR / REMOVER o monitoramento:
    powershell -ExecutionPolicy Bypass -File .\lan-monitor.ps1 -Uninstall
@@ -40,12 +47,14 @@
 
 param(
   [string] $Server = "",
-  [int]    $Interval = 300,
+  [int]    $Interval = 0,
   [string] $Name = "",
   [switch] $Once,
   [switch] $Install,
   [switch] $Uninstall
 )
+
+$DefaultInterval = 300
 
 $ErrorActionPreference = "Stop"
 
@@ -79,6 +88,50 @@ if ([string]::IsNullOrWhiteSpace($Server)) {
   exit 1
 }
 $Server = $Server.TrimEnd("/")
+
+# ── Intervalo: usa o informado (-Interval) ou busca do servidor ───────────
+# Converte uma expressao cron simples ("*" ou "*/N" por campo: minuto hora
+# dia-do-mes mes dia-da-semana) no intervalo equivalente em segundos. So
+# suporta o subconjunto usado pelo cronInterval do dashboard (campo */N mais
+# a esquerda define o passo; os demais devem ser "*"). Qualquer outro padrao
+# cai no fallback.
+function ConvertFrom-CronToSeconds([string] $Expr) {
+  $parts = $Expr -split '\s+'
+  if ($parts.Count -lt 2) { return $null }
+  $minute = $parts[0]; $hour = $parts[1]
+  if ($minute -match '^\*/(\d+)$') { return [int]$Matches[1] * 60 }
+  if ($minute -eq '*' -and $hour -match '^\*/(\d+)$') { return [int]$Matches[1] * 3600 }
+  if ($minute -eq '*') { return 60 }
+  return $null
+}
+
+function Get-IntervalFromServer {
+  try {
+    $req = [System.Net.WebRequest]::Create("$Server/api/config")
+    $req.Method = "GET"
+    $req.Timeout = 10000
+    $req.Proxy = $null
+    $resp = $req.GetResponse()
+    $sr = New-Object System.IO.StreamReader($resp.GetResponseStream())
+    $body = $sr.ReadToEnd(); $sr.Close(); $resp.Close()
+    $cronExpr = ($body | ConvertFrom-Json).cronInterval
+    if ([string]::IsNullOrWhiteSpace($cronExpr)) { return $null }
+    return ConvertFrom-CronToSeconds $cronExpr
+  } catch {
+    return $null
+  }
+}
+
+if ($Interval -le 0) {
+  $fromServer = Get-IntervalFromServer
+  if ($fromServer) {
+    $Interval = $fromServer
+    Write-Host "[lan-monitor] intervalo obtido do servidor (cronInterval): ${Interval}s"
+  } else {
+    $Interval = $DefaultInterval
+    Write-Warning "Nao foi possivel obter o intervalo do servidor; usando padrao de ${Interval}s"
+  }
+}
 
 # ── Instalacao como Tarefa Agendada de auto-inicio ─────────────────────────
 if ($Install) {

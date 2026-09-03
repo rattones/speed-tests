@@ -8,6 +8,9 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ## [Não lançado]
 
+### Alterado
+- `scripts/lan-monitor.sh` e `scripts/lan-monitor.ps1` — quando `--interval`/`-Interval` não é informado, o intervalo entre medições é obtido automaticamente do servidor (`GET /api/config`, campo `cronInterval`, o mesmo intervalo de coleta configurado para as WANs) em vez do fixo de 300s; se o servidor não responder ou a expressão cron não for reconhecida, mantém o fallback de 300s. O valor resolvido é gravado fixo no serviço/tarefa ao instalar (`--install`/`-Install`)
+
 ### Adicionado
 
 #### Monitoramento de rede local (máquina = WAN)

@@ -14,18 +14,25 @@
 #   ./lan-monitor.sh --server http://192.168.1.10:8020 --once     # uma medição
 #   ./lan-monitor.sh --server http://192.168.1.10:8020 --interval 60 --name "Notebook Sala"
 #
+# Se --interval (ou INTERVAL=) não for informado, o intervalo é obtido
+# automaticamente do servidor (GET /api/config, campo cronInterval — o mesmo
+# intervalo de coleta configurado para as WANs), convertido para segundos.
+# Se não for possível obter, usa 300s (5 min).
+#
 # Variáveis de ambiente equivalentes: SERVER_URL, INTERVAL, DEVICE_NAME
 #
 # Rodar em background continuamente:
-#   nohup ./lan-monitor.sh --server http://192.168.1.10:8020 --interval 300 >/tmp/lan-monitor.log 2>&1 &
+#   nohup ./lan-monitor.sh --server http://192.168.1.10:8020 >/tmp/lan-monitor.log 2>&1 &
 #
 # INICIAR JUNTO COM O SISTEMA (recomendado):
-#   ./lan-monitor.sh --server http://192.168.1.10:8020 --interval 300 --name "Notebook Sala" --install
+#   ./lan-monitor.sh --server http://192.168.1.10:8020 --name "Notebook Sala" --install
 #     Linux: cria e ativa um serviço systemd de usuário (lan-monitor.service);
 #            volta sozinho após reboot (com lingering) e se o processo cair.
 #     macOS: cria e carrega um LaunchAgent (~/Library/LaunchAgents/com.speedmonitor.lan-monitor.plist);
 #            inicia no login e é mantido vivo pelo launchd.
 #   O script é copiado para ~/.local/share/lan-monitor/ — pode apagar o arquivo baixado depois.
+#   O intervalo é resolvido nesse momento (a partir do cronInterval do servidor,
+#   a menos que --interval tenha sido informado) e gravado fixo no serviço instalado.
 #
 # PARAR / REMOVER o monitoramento:
 #   ./lan-monitor.sh --uninstall
@@ -49,8 +56,9 @@ export LC_ALL=C
 export LANG=C
 
 SERVER_URL="${SERVER_URL:-}"
-INTERVAL="${INTERVAL:-300}"
+INTERVAL="${INTERVAL:-}"
 DEVICE_NAME="${DEVICE_NAME:-}"
+DEFAULT_INTERVAL=300
 ONCE=0
 DO_INSTALL=0
 DO_UNINSTALL=0
@@ -103,6 +111,46 @@ if [[ -z "$SERVER_URL" ]]; then
   exit 1
 fi
 SERVER_URL="${SERVER_URL%/}"
+
+# ── Intervalo: usa o informado (--interval/INTERVAL) ou busca do servidor ──
+# Converte uma expressão cron simples ("*" ou "*/N" por campo: minuto hora
+# dia-do-mês mês dia-da-semana) no intervalo equivalente em segundos. Só
+# suporta o subconjunto usado pelo cronInterval do dashboard (campo */N mais
+# à esquerda define o passo; os demais devem ser "*"). Qualquer outro padrão
+# cai no fallback.
+cron_to_seconds() {
+  local expr="$1" minute hour
+  read -r minute hour _ <<<"$expr"
+  if [[ "$minute" =~ ^\*/([0-9]+)$ ]]; then
+    echo $(( ${BASH_REMATCH[1]} * 60 )); return 0
+  fi
+  if [[ "$minute" == "*" && "$hour" =~ ^\*/([0-9]+)$ ]]; then
+    echo $(( ${BASH_REMATCH[1]} * 3600 )); return 0
+  fi
+  if [[ "$minute" == "*" ]]; then
+    echo 60; return 0
+  fi
+  return 1
+}
+
+fetch_interval_from_server() {
+  local cron_expr seconds
+  cron_expr="$(curl -s -m 10 "$SERVER_URL/api/config" 2>/dev/null \
+    | sed -n 's/.*"cronInterval" *: *"\([^"]*\)".*/\1/p')"
+  [[ -z "$cron_expr" ]] && return 1
+  seconds="$(cron_to_seconds "$cron_expr")" || return 1
+  [[ "$seconds" -gt 0 ]] || return 1
+  echo "$seconds"
+}
+
+if [[ -z "$INTERVAL" ]]; then
+  if INTERVAL="$(fetch_interval_from_server)"; then
+    echo "[lan-monitor] intervalo obtido do servidor (cronInterval): ${INTERVAL}s"
+  else
+    INTERVAL="$DEFAULT_INTERVAL"
+    echo "[lan-monitor] AVISO: não foi possível obter o intervalo do servidor; usando padrão de ${INTERVAL}s" >&2
+  fi
+fi
 
 # ── Instalação como serviço de auto-início ──────────────────────────────────
 if [[ "$DO_INSTALL" -eq 1 ]]; then

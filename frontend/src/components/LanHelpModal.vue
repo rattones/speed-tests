@@ -48,7 +48,11 @@
             <p class="mt-1 text-xs text-gray-400">
               O comando abaixo instala o agente como serviço de auto-início: ele volta
               sozinho depois que o computador reinicia e é reiniciado se o processo cair.
-              <strong>Não é preciso recriar nada a cada reboot.</strong>
+              <strong>Não é preciso recriar nada a cada reboot.</strong> O intervalo entre
+              medições é obtido automaticamente das configurações do servidor (⚙️ →
+              intervalo de coleta das WANs); para usar outro valor, adicione
+              <span class="font-mono">--interval SEGUNDOS</span>
+              (<span class="font-mono">-Interval</span> no Windows).
             </p>
             <pre class="mt-2 bg-gray-900 border border-gray-700 rounded-lg p-3 text-xs text-green-300 overflow-x-auto whitespace-pre">{{ installCmd }}</pre>
             <p class="mt-2 text-xs text-gray-500" v-html="installHint"></p>
@@ -153,13 +157,15 @@ export default {
       if (this.os === 'windows') {
         return [
           '# instala como Tarefa Agendada (gatilho "Ao fazer logon"):',
+          '# intervalo é obtido automaticamente das configurações do servidor',
           `powershell -ExecutionPolicy Bypass -File .\\lan-monitor.ps1 \``,
-          `  -Server ${this.origin} -Interval 300 -Name "Meu PC" -Install`,
+          `  -Server ${this.origin} -Name "Meu PC" -Install`,
         ].join('\n');
       }
       return [
         '# instala como serviço de auto-início:',
-        `./lan-monitor.sh --server ${this.origin} --interval 300 --name "Meu PC" --install`,
+        '# intervalo é obtido automaticamente das configurações do servidor',
+        `./lan-monitor.sh --server ${this.origin} --name "Meu PC" --install`,
       ].join('\n');
     },
     installHint() {
@@ -174,14 +180,14 @@ export default {
     loopCmd() {
       if (this.os === 'windows') {
         return [
-          '# roda a cada 5 min em background (janela oculta):',
+          '# roda em loop em background (janela oculta), com o intervalo das configurações do servidor:',
           `powershell -ExecutionPolicy Bypass -WindowStyle Hidden -File .\\lan-monitor.ps1 \``,
-          `  -Server ${this.origin} -Interval 300 -Name "Meu PC"`,
+          `  -Server ${this.origin} -Name "Meu PC"`,
         ].join('\n');
       }
       return [
-        '# roda a cada 5 min em background:',
-        `nohup ./lan-monitor.sh --server ${this.origin} --interval 300 --name "Meu PC" \\`,
+        '# roda em loop em background, com o intervalo das configurações do servidor:',
+        `nohup ./lan-monitor.sh --server ${this.origin} --name "Meu PC" \\`,
         '  > /tmp/lan-monitor.log 2>&1 &',
       ].join('\n');
     },
