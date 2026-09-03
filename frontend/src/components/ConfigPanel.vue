@@ -1,17 +1,20 @@
 <template>
   <div class="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50" @click.self="$emit('close')">
-    <div class="bg-gray-800 rounded-xl shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+    <div
+      class="bg-gray-800 rounded-xl shadow-lg w-full flex flex-col"
+      :style="{ maxWidth: modalMaxWidth, maxHeight: '90vh' }"
+    >
 
-      <div class="flex items-center justify-between px-6 py-4 border-b border-gray-700">
-        <h2 class="text-lg font-bold text-white">Configurações</h2>
+      <div class="flex items-center justify-between border-b border-gray-700 flex-shrink-0" style="padding: clamp(0.5rem, 1.5vh, 1rem) clamp(1rem, 2vw, 1.5rem);">
+        <h2 class="font-bold text-white" style="font-size: clamp(1rem, 2vh, 1.125rem);">Configurações</h2>
         <button @click="$emit('close')" class="text-gray-400 hover:text-white text-xl leading-none">✕</button>
       </div>
 
-      <div class="p-6 space-y-8">
+      <div class="flex flex-col min-h-0 flex-1" style="padding: clamp(0.75rem, 2vh, 1.5rem); gap: clamp(0.5rem, 1.5vh, 2rem);">
 
         <!-- Intervalo de coleta -->
-        <section>
-          <h3 class="text-sm font-semibold text-gray-300 mb-2">Intervalo de coleta (cron)</h3>
+        <section class="flex-shrink-0">
+          <h3 class="font-semibold text-gray-300" style="font-size: clamp(0.8rem, 1.4vh, 0.875rem); margin-bottom: clamp(0.25rem, 0.6vh, 0.5rem);">Intervalo de coleta (cron)</h3>
           <div class="flex items-end gap-2">
             <input
               v-model="localCron"
@@ -25,7 +28,7 @@
               class="px-4 py-1.5 text-sm bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed rounded transition-colors font-medium"
             >Salvar</button>
           </div>
-          <p class="text-xs text-gray-500 mt-2">
+          <p class="text-gray-500" style="font-size: clamp(0.65rem, 1.1vh, 0.75rem); margin-top: clamp(0.25rem, 0.6vh, 0.5rem);">
             Formato: <span class="font-mono text-gray-400">minuto hora dia-do-mês mês dia-da-semana</span>.
             Cada campo aceita <span class="font-mono text-gray-400">*</span> (qualquer valor) ou
             <span class="font-mono text-gray-400">*/N</span> (a cada N).
@@ -34,9 +37,9 @@
         </section>
 
         <!-- Lista de WANs -->
-        <section v-if="activeTab === 'wans'">
-          <div class="flex items-center justify-between mb-3">
-            <h3 class="text-sm font-semibold text-gray-300">WANs monitoradas</h3>
+        <section v-if="activeTab === 'wans'" class="flex-1 min-h-0 flex flex-col">
+          <div class="flex items-center justify-between flex-shrink-0" style="margin-bottom: clamp(0.35rem, 0.8vh, 0.75rem);">
+            <h3 class="font-semibold text-gray-300" style="font-size: clamp(0.8rem, 1.4vh, 0.875rem);">WANs monitoradas</h3>
             <button
               v-if="!newWan"
               @click="startCreate"
@@ -44,7 +47,7 @@
             >+ Adicionar WAN</button>
           </div>
 
-          <div class="space-y-3">
+          <div class="flex flex-col overflow-y-auto" style="gap: clamp(0.25rem, 0.6vh, 0.75rem);">
             <wan-form
               v-if="newWan"
               :wan="newWan"
@@ -63,17 +66,18 @@
               />
               <div
                 v-else
-                class="flex items-center justify-between gap-3 bg-gray-750 border border-gray-700 rounded-lg px-4 py-3"
+                class="flex items-center justify-between gap-3 bg-gray-750 border border-gray-700 rounded-lg"
+                style="padding: clamp(0.35rem, 0.9vh, 0.75rem) clamp(0.6rem, 1.2vw, 1rem);"
                 :class="{ 'opacity-50': !w.active }"
               >
                 <div class="flex items-center gap-3 min-w-0">
                   <span class="w-4 h-4 rounded-full flex-shrink-0" :style="{ backgroundColor: w.colorHex }"></span>
                   <div class="min-w-0">
-                    <p class="text-white font-medium truncate">
+                    <p class="text-white font-medium truncate" style="font-size: clamp(0.8rem, 1.4vh, 0.875rem);">
                       {{ w.name }}
-                      <span v-if="!w.active" class="text-xs text-gray-500 font-normal">(monitoramento desativado)</span>
+                      <span v-if="!w.active" class="text-gray-500 font-normal" style="font-size: clamp(0.65rem, 1.1vh, 0.75rem);">(monitoramento desativado)</span>
                     </p>
-                    <p class="text-xs text-gray-400 truncate">
+                    <p class="text-gray-400 truncate" style="font-size: clamp(0.65rem, 1.1vh, 0.75rem);">
                       Server ID: {{ w.serverId }} · min ↓{{ w.minDownload }} ↑{{ w.minUpload }} Mbps · max ping {{ w.maxPing }}ms
                     </p>
                   </div>
@@ -93,9 +97,9 @@
         </section>
 
         <!-- Lista de dispositivos da rede local -->
-        <section v-else>
-          <h3 class="text-sm font-semibold text-gray-300 mb-1">Dispositivos da rede local</h3>
-          <p class="text-xs text-gray-500 mb-3">
+        <section v-else class="flex-1 min-h-0 flex flex-col">
+          <h3 class="font-semibold text-gray-300 flex-shrink-0" style="font-size: clamp(0.8rem, 1.4vh, 0.875rem); margin-bottom: clamp(0.15rem, 0.4vh, 0.25rem);">Dispositivos da rede local</h3>
+          <p class="text-gray-500 flex-shrink-0" style="font-size: clamp(0.65rem, 1.1vh, 0.75rem); margin-bottom: clamp(0.35rem, 0.8vh, 0.75rem);">
             Cadastrados automaticamente quando o agente envia a primeira medição. Aqui você
             ajusta nome, cor, ordem e limites de alerta.
           </p>
@@ -104,7 +108,7 @@
             Nenhum dispositivo ainda. Use "Monitorar um computador" na aba Rede Local.
           </div>
 
-          <div class="space-y-3">
+          <div class="flex flex-col overflow-y-auto" style="gap: clamp(0.25rem, 0.6vh, 0.75rem);">
             <div v-for="d in localDevices" :key="d.id">
               <device-form
                 v-if="editingDevice && editingDevice.id === d.id"
@@ -115,17 +119,18 @@
               />
               <div
                 v-else
-                class="flex items-center justify-between gap-3 bg-gray-750 border border-gray-700 rounded-lg px-4 py-3"
+                class="flex items-center justify-between gap-3 bg-gray-750 border border-gray-700 rounded-lg"
+                style="padding: clamp(0.35rem, 0.9vh, 0.75rem) clamp(0.6rem, 1.2vw, 1rem);"
                 :class="{ 'opacity-50': !d.active }"
               >
                 <div class="flex items-center gap-3 min-w-0">
                   <span class="w-4 h-4 rounded-full flex-shrink-0" :style="{ backgroundColor: d.colorHex }"></span>
                   <div class="min-w-0">
-                    <p class="text-white font-medium truncate">
+                    <p class="text-white font-medium truncate" style="font-size: clamp(0.8rem, 1.4vh, 0.875rem);">
                       {{ d.name }}
-                      <span v-if="!d.active" class="text-xs text-gray-500 font-normal">(monitoramento desativado)</span>
+                      <span v-if="!d.active" class="text-gray-500 font-normal" style="font-size: clamp(0.65rem, 1.1vh, 0.75rem);">(monitoramento desativado)</span>
                     </p>
-                    <p class="text-xs text-gray-400 truncate">
+                    <p class="text-gray-400 truncate" style="font-size: clamp(0.65rem, 1.1vh, 0.75rem);">
                       {{ d.machineId }}
                       <span v-if="d.connType && d.connType !== 'unknown'"> · {{ d.connType === 'wifi' ? 'WiFi' : 'Cabo' }}</span>
                       <span v-if="d.os"> · {{ d.os }}</span>
@@ -147,7 +152,7 @@
           </div>
         </section>
 
-        <p v-if="errorMsg" class="text-sm text-red-400">{{ errorMsg }}</p>
+        <p v-if="errorMsg" class="text-sm text-red-400 flex-shrink-0">{{ errorMsg }}</p>
 
       </div>
     </div>
@@ -183,6 +188,16 @@ export default {
       saving:        false,
       errorMsg:      '',
     };
+  },
+
+  computed: {
+    // Com muitos itens, alarga a modal antes de comprimir demais a altura de cada linha.
+    modalMaxWidth() {
+      const count = this.activeTab === 'lan' ? this.localDevices.length : this.localWans.length;
+      if (count > 12) return 'min(96vw, 80rem)';
+      if (count > 6)  return 'min(92vw, 68rem)';
+      return 'min(90vw, 56rem)';
+    },
   },
 
   async mounted() {

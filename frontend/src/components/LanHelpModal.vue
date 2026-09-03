@@ -1,14 +1,14 @@
 <template>
   <div class="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50" @click.self="$emit('close')">
-    <div class="bg-gray-800 rounded-xl shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+    <div class="bg-gray-800 rounded-xl shadow-lg w-full flex flex-col" style="max-width: min(90vw, 64rem); max-height: 90vh;">
 
-      <div class="flex items-center justify-between px-6 py-4 border-b border-gray-700">
-        <h2 class="text-lg font-bold text-white">Monitorar um computador</h2>
+      <div class="flex items-center justify-between border-b border-gray-700 flex-shrink-0" style="padding: clamp(0.5rem, 1.5vh, 1rem) clamp(1rem, 2vw, 1.5rem);">
+        <h2 class="font-bold text-white" style="font-size: clamp(1rem, 2vh, 1.125rem);">Monitorar um computador</h2>
         <button @click="$emit('close')" class="text-gray-400 hover:text-white text-xl leading-none">✕</button>
       </div>
 
-      <div class="p-6 space-y-6 text-sm text-gray-300">
-        <p>
+      <div class="text-gray-300 overflow-y-auto min-h-0" style="padding: clamp(0.75rem, 2vh, 1.5rem); font-size: clamp(0.8rem, 1.4vh, 0.875rem);">
+        <p style="margin-bottom: clamp(0.5rem, 1.4vh, 1.5rem);">
           O agente roda direto no computador (fora do navegador), mede a velocidade e a
           latência até este servidor de tempos em tempos e envia os resultados. Cada
           máquina aparece como um card e uma linha no gráfico — identificada pelo
@@ -16,7 +16,7 @@
         </p>
 
         <!-- Seletor de SO -->
-        <div class="flex gap-2">
+        <div class="flex gap-2" style="margin-bottom: clamp(0.5rem, 1.4vh, 1.5rem);">
           <button
             v-for="opt in osOptions"
             :key="opt.key"
@@ -27,7 +27,7 @@
         </div>
 
         <!-- Passos -->
-        <ol class="space-y-4 list-decimal list-inside">
+        <ol class="list-decimal list-inside" style="display: flex; flex-direction: column; gap: clamp(0.5rem, 1.4vh, 1rem);">
           <li>
             <span class="text-gray-200 font-medium">Baixe o agente</span>
             <div class="mt-2">
@@ -80,7 +80,7 @@
           </li>
         </ol>
 
-        <div class="bg-gray-900 border border-gray-700 rounded-lg p-3 text-xs text-gray-400">
+        <div class="bg-gray-900 border border-gray-700 rounded-lg text-gray-400" style="padding: clamp(0.5rem, 1.2vh, 0.75rem); font-size: clamp(0.7rem, 1.2vh, 0.75rem); margin-top: clamp(0.5rem, 1.4vh, 1.5rem);">
           <p>Endereço deste servidor: <span class="font-mono text-gray-200">{{ origin }}</span></p>
           <p class="mt-1">
             A porta <span class="font-mono text-gray-200">{{ port }}</span> precisa estar acessível
@@ -94,7 +94,7 @@
         </div>
       </div>
 
-      <div class="px-6 py-4 border-t border-gray-700 flex justify-end">
+      <div class="border-t border-gray-700 flex justify-end flex-shrink-0" style="padding: clamp(0.5rem, 1.2vh, 1rem) clamp(1rem, 2vw, 1.5rem);">
         <button
           @click="$emit('close')"
           class="px-4 py-1.5 text-sm bg-blue-600 hover:bg-blue-500 rounded transition-colors font-medium"

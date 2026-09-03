@@ -1,10 +1,10 @@
 <template>
-  <div class="space-y-8">
+  <div class="h-full flex flex-col" style="gap: clamp(0.5rem, 1.5vh, 2rem);">
 
     <!-- Cards de Status -->
-    <section>
-      <div class="flex items-center justify-between mb-4">
-        <h2 class="text-lg font-semibold text-gray-300">Status Atual</h2>
+    <section class="flex-shrink-0">
+      <div class="flex items-center justify-between" style="margin-bottom: clamp(0.4rem, 1vh, 1rem);">
+        <h2 class="font-semibold text-gray-300" style="font-size: clamp(0.9rem, 1.6vh, 1.125rem);">Status Atual</h2>
         <div v-if="wans.length > maxVisibleCards" class="flex items-center gap-2">
           <button
             @click="cardOffset--"
@@ -20,7 +20,7 @@
           >›</button>
         </div>
       </div>
-      <div class="grid gap-6" :style="{ gridTemplateColumns: `repeat(${visibleWans.length}, minmax(0, 1fr))` }">
+      <div class="grid gap-4" :style="{ gridTemplateColumns: `repeat(${visibleWans.length}, minmax(0, 1fr))` }">
         <wan-card
           v-for="w in visibleWans"
           :key="w.id"
@@ -41,8 +41,9 @@
     </section>
 
     <!-- Gráfico de Histórico -->
-    <section>
+    <section class="flex-1 min-h-0">
       <speed-chart
+        class="h-full"
         :wans="chartWans"
         :mode="mode"
         :window-start="displayWindowStart.getTime()"

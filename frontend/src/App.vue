@@ -1,49 +1,53 @@
 <template>
-  <div class="bg-gray-900 min-h-screen text-white">
+  <div class="bg-gray-900 text-white h-screen overflow-hidden flex flex-col">
 
     <!-- Header -->
-    <header class="bg-gray-800 border-b border-gray-700 px-6 py-4">
-      <div class="max-w-7xl mx-auto flex items-center justify-between">
+    <header class="bg-gray-800 border-b border-gray-700 flex-shrink-0" style="padding: clamp(0.4rem, 1.2vh, 1rem) clamp(0.75rem, 2vw, 1.5rem);">
+      <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
         <div>
-          <h1 class="text-2xl font-bold text-white">⚡ Speed Monitor</h1>
-          <p class="text-sm text-gray-400 mt-0.5">Monitoramento de rede</p>
+          <h1 class="font-bold text-white" style="font-size: clamp(1.1rem, 2.2vh, 1.5rem);">⚡ Speed Monitor</h1>
+          <p class="text-gray-400" style="font-size: clamp(0.65rem, 1.3vh, 0.875rem);">Monitoramento de rede</p>
         </div>
         <div class="flex items-center gap-4">
-          <div class="text-right text-sm text-gray-400">
+          <!-- Abas -->
+          <div class="flex gap-1">
+            <button
+              v-for="tab in tabs"
+              :key="tab.key"
+              @click="activeTab = tab.key"
+              class="font-medium rounded-lg transition-colors"
+              style="padding: clamp(0.3rem, 0.9vh, 0.5rem) clamp(0.6rem, 1.2vw, 1rem); font-size: clamp(0.75rem, 1.3vh, 0.875rem);"
+              :class="activeTab === tab.key
+                ? 'text-white bg-gray-700'
+                : 'text-gray-400 hover:text-gray-200'"
+            >{{ tab.label }}</button>
+          </div>
+
+          <div class="text-right text-gray-400" style="font-size: clamp(0.7rem, 1.3vh, 0.875rem);">
             <div v-if="lastUpdate">
               Atualizado: {{ timeAgo(lastUpdate) }}
             </div>
           </div>
           <button
             @click="showConfig = true"
-            class="p-2 rounded-full hover:bg-gray-700 transition-colors text-xl"
+            class="rounded-full hover:bg-gray-700 transition-colors"
+            style="padding: clamp(0.3rem, 0.8vh, 0.5rem); font-size: clamp(1rem, 1.8vh, 1.25rem);"
             title="Configurações"
           >⚙️</button>
         </div>
       </div>
-
-      <!-- Abas -->
-      <div class="max-w-7xl mx-auto mt-3 flex gap-1">
-        <button
-          v-for="tab in tabs"
-          :key="tab.key"
-          @click="activeTab = tab.key"
-          class="px-4 py-2 text-sm font-medium rounded-t-lg transition-colors border-b-2"
-          :class="activeTab === tab.key
-            ? 'text-white border-blue-500 bg-gray-900'
-            : 'text-gray-400 border-transparent hover:text-gray-200'"
-        >{{ tab.label }}</button>
-      </div>
     </header>
 
-    <main class="max-w-7xl mx-auto px-6 py-8">
+    <main class="max-w-7xl mx-auto w-full flex-1 min-h-0" style="padding: clamp(0.5rem, 1.5vh, 1.5rem) clamp(0.75rem, 2vw, 1.5rem);">
       <wan-tab
         v-show="activeTab === 'wans'"
+        class="h-full"
         :reload-key="reloadKey"
         @loaded="onLoaded"
       />
       <lan-tab
         v-show="activeTab === 'lan'"
+        class="h-full"
         :reload-key="reloadKey"
         @loaded="onLoaded"
       />
@@ -58,12 +62,12 @@
     />
 
     <!-- Footer -->
-    <footer class="border-t border-gray-700 px-6 py-4 mt-8">
-      <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-        <p class="text-sm text-gray-500">
+    <footer class="border-t border-gray-700 flex-shrink-0" style="padding: clamp(0.35rem, 1vh, 1rem) clamp(0.75rem, 2vw, 1.5rem);">
+      <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-4">
+        <p class="text-gray-500" style="font-size: clamp(0.65rem, 1.2vh, 0.875rem);">
           Intervalo de coleta das WANs: <span class="text-gray-300 font-mono">{{ config.cronInterval }}</span>
         </p>
-        <div class="text-sm text-gray-500 text-right">
+        <div class="text-gray-500 text-right" style="font-size: clamp(0.65rem, 1.2vh, 0.875rem);">
           <p>Desenvolvido por: <span class="text-gray-300">Marcelo Ratton</span></p>
           <a
             href="https://github.com/rattones/speed-tests"

@@ -1,7 +1,11 @@
 <template>
-  <div class="rounded-xl shadow-lg p-6 bg-gray-800 border-l-4" :style="{ borderLeftColor: color }">
+  <div
+    class="rounded-xl shadow-lg bg-gray-800 border-l-4"
+    style="padding: clamp(0.6rem, 1.8vh, 1.5rem);"
+    :style="{ borderLeftColor: color }"
+  >
     <!-- Header do card -->
-    <div class="flex items-center justify-between mb-5">
+    <div class="flex items-center justify-between" style="margin-bottom: clamp(0.5rem, 1.4vh, 1.25rem);">
       <label class="flex items-center gap-2 cursor-pointer min-w-0">
         <input
           type="checkbox"
@@ -16,8 +20,8 @@
           title="Ordem de exibição"
         >{{ orderNumber }}</span>
         <div class="min-w-0">
-          <h3 class="text-lg font-bold text-white truncate">{{ wanName.replace('_', ' ') }}</h3>
-          <p v-if="subtitle" class="text-xs text-gray-500 truncate">{{ subtitle }}</p>
+          <h3 class="font-bold text-white truncate" style="font-size: clamp(0.9rem, 1.8vh, 1.125rem);">{{ wanName.replace('_', ' ') }}</h3>
+          <p v-if="subtitle" class="text-gray-500 truncate" style="font-size: clamp(0.65rem, 1.1vh, 0.75rem);">{{ subtitle }}</p>
         </div>
       </label>
       <span
@@ -28,8 +32,8 @@
     </div>
 
     <!-- Sem dados -->
-    <div v-if="!latestTest" class="py-4 flex flex-col items-center gap-3">
-      <span class="text-gray-400 text-sm">Nenhum teste realizado ainda</span>
+    <div v-if="!latestTest" class="flex flex-col items-center gap-3" style="padding: clamp(0.5rem, 1.4vh, 1rem) 0;">
+      <span class="text-gray-400" style="font-size: clamp(0.75rem, 1.3vh, 0.875rem);">Nenhum teste realizado ainda</span>
       <button
         v-if="canRunTest"
         class="flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium transition-colors"
@@ -45,33 +49,33 @@
     </div>
 
     <!-- Métricas -->
-    <div v-else class="space-y-4">
+    <div v-else class="flex flex-col" style="gap: clamp(0.35rem, 1vh, 1rem);">
       <div class="flex items-baseline justify-between">
-        <span class="text-gray-400 text-sm">↓ Download</span>
-        <span class="text-2xl font-mono font-semibold" :class="downloadColor">
+        <span class="text-gray-400" style="font-size: clamp(0.75rem, 1.3vh, 0.875rem);">↓ Download</span>
+        <span class="font-mono font-semibold" style="font-size: clamp(1.1rem, 2.4vh, 1.5rem);" :class="downloadColor">
           {{ latestTest.download_mbps.toFixed(1) }}
-          <span class="text-sm font-normal text-gray-400">Mbps</span>
+          <span class="font-normal text-gray-400" style="font-size: clamp(0.7rem, 1.2vh, 0.875rem);">Mbps</span>
         </span>
       </div>
 
       <div class="flex items-baseline justify-between">
-        <span class="text-gray-400 text-sm">↑ Upload</span>
-        <span class="text-2xl font-mono font-semibold" :class="uploadColor">
+        <span class="text-gray-400" style="font-size: clamp(0.75rem, 1.3vh, 0.875rem);">↑ Upload</span>
+        <span class="font-mono font-semibold" style="font-size: clamp(1.1rem, 2.4vh, 1.5rem);" :class="uploadColor">
           {{ latestTest.upload_mbps.toFixed(1) }}
-          <span class="text-sm font-normal text-gray-400">Mbps</span>
+          <span class="font-normal text-gray-400" style="font-size: clamp(0.7rem, 1.2vh, 0.875rem);">Mbps</span>
         </span>
       </div>
 
       <div class="flex items-baseline justify-between">
-        <span class="text-gray-400 text-sm">⏱ Ping</span>
-        <span class="text-xl font-mono font-semibold text-gray-200">
+        <span class="text-gray-400" style="font-size: clamp(0.75rem, 1.3vh, 0.875rem);">⏱ Ping</span>
+        <span class="font-mono font-semibold text-gray-200" style="font-size: clamp(1rem, 2vh, 1.25rem);">
           {{ latestTest.ping_ms.toFixed(0) }}
-          <span class="text-sm font-normal text-gray-400">ms</span>
+          <span class="font-normal text-gray-400" style="font-size: clamp(0.7rem, 1.2vh, 0.875rem);">ms</span>
         </span>
       </div>
 
-      <div class="pt-2 border-t border-gray-700 flex items-center justify-between">
-        <span class="text-xs text-gray-500">{{ timeAgo(latestTest.created_at) }}</span>
+      <div class="border-t border-gray-700 flex items-center justify-between" style="padding-top: clamp(0.35rem, 1vh, 0.5rem);">
+        <span class="text-gray-500" style="font-size: clamp(0.65rem, 1.1vh, 0.75rem);">{{ timeAgo(latestTest.created_at) }}</span>
         <button
           v-if="canRunTest"
           class="flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium transition-colors"

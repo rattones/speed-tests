@@ -1,100 +1,46 @@
 <template>
-  <div class="space-y-8">
-
-    <!-- Barra de ações da rede local -->
-    <section class="bg-gray-800 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-      <div class="min-w-0">
-        <h2 class="text-lg font-semibold text-gray-300">Rede Local</h2>
-        <p class="text-xs text-gray-500">
-          Velocidade e latência entre cada computador e este servidor, por toda a rota (WiFi ou cabo).
-        </p>
-      </div>
-      <div class="flex items-center gap-2 flex-shrink-0">
-        <button
-          @click="runBrowserTest"
-          :disabled="browserTest.running"
-          class="flex items-center gap-2 px-3 py-1.5 text-sm rounded font-medium transition-colors"
-          :class="browserTest.running
-            ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
-            : 'bg-blue-600 hover:bg-blue-500 text-white'"
-        >
-          <span
-            v-if="browserTest.running"
-            class="animate-spin inline-block w-3.5 h-3.5 border-2 border-gray-400 border-t-transparent rounded-full"
-          ></span>
-          {{ browserTest.running ? phaseLabel : 'Testar deste computador' }}
-        </button>
-        <button
-          @click="showHelp = true"
-          class="px-3 py-1.5 text-sm rounded font-medium bg-gray-700 hover:bg-gray-600 text-gray-200 transition-colors"
-        >Monitorar um computador</button>
-      </div>
-    </section>
-
-    <!-- Resultado efêmero do teste pelo navegador -->
-    <section
-      v-if="browserTest.running || browserTest.result || browserTest.error"
-      class="bg-gray-800 rounded-xl p-6 border-l-4 border-blue-500"
-    >
-      <div class="flex items-center justify-between mb-4">
-        <h3 class="text-sm font-semibold text-gray-300">
-          Teste deste computador
-          <span class="text-gray-500 font-normal">— não salvo, só exibição</span>
-        </h3>
-        <button
-          v-if="!browserTest.running"
-          @click="clearBrowserTest"
-          class="text-gray-400 hover:text-white text-sm"
-        >✕</button>
-      </div>
-
-      <div v-if="browserTest.error" class="text-red-400 text-sm">{{ browserTest.error }}</div>
-
-      <div v-else class="grid grid-cols-3 gap-6">
-        <div>
-          <p class="text-gray-400 text-sm mb-1">↓ Download</p>
-          <p class="text-2xl font-mono font-semibold text-white">
-            {{ fmt(liveOrFinal('download_mbps')) }}
-            <span class="text-sm font-normal text-gray-400">Mbps</span>
-          </p>
-        </div>
-        <div>
-          <p class="text-gray-400 text-sm mb-1">↑ Upload</p>
-          <p class="text-2xl font-mono font-semibold text-white">
-            {{ fmt(liveOrFinal('upload_mbps')) }}
-            <span class="text-sm font-normal text-gray-400">Mbps</span>
-          </p>
-        </div>
-        <div>
-          <p class="text-gray-400 text-sm mb-1">⏱ Ping</p>
-          <p class="text-xl font-mono font-semibold text-gray-200">
-            {{ browserTest.result ? browserTest.result.ping_ms.toFixed(0) : '—' }}
-            <span class="text-sm font-normal text-gray-400">ms</span>
-            <span v-if="browserTest.result" class="text-xs text-gray-500 ml-1">
-              ± {{ browserTest.result.jitter_ms.toFixed(1) }}
-            </span>
-          </p>
-        </div>
-      </div>
-    </section>
+  <div class="h-full flex flex-col" style="gap: clamp(0.5rem, 1.5vh, 2rem);">
 
     <!-- Cards de Status -->
-    <section>
-      <div class="flex items-center justify-between mb-4">
-        <h2 class="text-lg font-semibold text-gray-300">Dispositivos</h2>
-        <div v-if="devices.length > maxVisibleCards" class="flex items-center gap-2">
+    <section class="flex-shrink-0">
+      <div class="flex items-center justify-between" style="margin-bottom: clamp(0.4rem, 1vh, 1rem);">
+        <h2 class="font-semibold text-gray-300" style="font-size: clamp(0.9rem, 1.6vh, 1.125rem);">Dispositivos</h2>
+        <div class="flex items-center gap-2">
           <button
-            @click="cardOffset--"
-            :disabled="cardOffset <= 0"
-            title="Anterior"
-            class="w-7 h-7 flex items-center justify-center rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-30 disabled:cursor-not-allowed transition text-sm font-bold"
-          >‹</button>
+            @click="runBrowserTest"
+            :disabled="browserTest.running"
+            class="flex items-center gap-2 rounded font-medium transition-colors"
+            style="padding: clamp(0.25rem, 0.7vh, 0.375rem) clamp(0.5rem, 1vw, 0.75rem); font-size: clamp(0.75rem, 1.3vh, 0.875rem);"
+            :class="browserTest.running
+              ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+              : 'bg-blue-600 hover:bg-blue-500 text-white'"
+          >
+            <span
+              v-if="browserTest.running"
+              class="animate-spin inline-block w-3.5 h-3.5 border-2 border-gray-400 border-t-transparent rounded-full"
+            ></span>
+            {{ browserTest.running ? 'Testando...' : 'Testar deste computador' }}
+          </button>
           <button
-            @click="cardOffset++"
-            :disabled="cardOffset >= devices.length - maxVisibleCards"
-            title="Próxima"
-            class="w-7 h-7 flex items-center justify-center rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-30 disabled:cursor-not-allowed transition text-sm font-bold"
-          >›</button>
+            @click="showHelp = true"
+            class="rounded font-medium bg-gray-700 hover:bg-gray-600 text-gray-200 transition-colors"
+            style="padding: clamp(0.25rem, 0.7vh, 0.375rem) clamp(0.5rem, 1vw, 0.75rem); font-size: clamp(0.75rem, 1.3vh, 0.875rem);"
+          >Monitorar um computador</button>
+
+          <template v-if="devices.length > maxVisibleCards">
+            <button
+              @click="cardOffset--"
+              :disabled="cardOffset <= 0"
+              title="Anterior"
+              class="w-7 h-7 flex items-center justify-center rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-30 disabled:cursor-not-allowed transition text-sm font-bold"
+            >‹</button>
+            <button
+              @click="cardOffset++"
+              :disabled="cardOffset >= devices.length - maxVisibleCards"
+              title="Próxima"
+              class="w-7 h-7 flex items-center justify-center rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-30 disabled:cursor-not-allowed transition text-sm font-bold"
+            >›</button>
+          </template>
         </div>
       </div>
 
@@ -108,7 +54,7 @@
 
       <div
         v-else
-        class="grid gap-6"
+        class="grid gap-4"
         :style="{ gridTemplateColumns: `repeat(${visibleDevices.length}, minmax(0, 1fr))` }"
       >
         <wan-card
@@ -132,8 +78,9 @@
     </section>
 
     <!-- Gráfico de Histórico -->
-    <section>
+    <section class="flex-1 min-h-0">
       <speed-chart
+        class="h-full"
         :wans="chartDevices"
         :mode="mode"
         :window-start="displayWindowStart.getTime()"
@@ -146,6 +93,12 @@
       />
     </section>
 
+    <lan-test-result-modal
+      v-if="showTestResult"
+      :test="browserTest"
+      @close="showTestResult = false"
+    />
+
     <lan-help-modal v-if="showHelp" @close="showHelp = false" />
 
   </div>
@@ -155,20 +108,14 @@
 const { loadModule, options, defineAsyncComponent } = window.__SFC__;
 const { runLanTest } = window.__LAN_MEASURE__;
 
-const PHASE_LABELS = {
-  ping:     'Medindo latência...',
-  download: 'Testando download...',
-  upload:   'Testando upload...',
-  done:     'Concluído',
-};
-
 export default {
   name: 'LanTab',
 
   components: {
-    WanCard:      defineAsyncComponent(() => loadModule('/src/components/WanCard.vue', options)),
-    SpeedChart:   defineAsyncComponent(() => loadModule('/src/components/SpeedChart.vue', options)),
-    LanHelpModal: defineAsyncComponent(() => loadModule('/src/components/LanHelpModal.vue', options)),
+    WanCard:            defineAsyncComponent(() => loadModule('/src/components/WanCard.vue', options)),
+    SpeedChart:         defineAsyncComponent(() => loadModule('/src/components/SpeedChart.vue', options)),
+    LanHelpModal:       defineAsyncComponent(() => loadModule('/src/components/LanHelpModal.vue', options)),
+    LanTestResultModal: defineAsyncComponent(() => loadModule('/src/components/LanTestResultModal.vue', options)),
   },
 
   props: {
@@ -192,20 +139,18 @@ export default {
       searchTo:        '',
       refreshTimer:    null,
       showHelp:        false,
+      showTestResult:  false,
       browserTest: {
-        running:    false,
-        phase:      null,
-        liveMbps:   { download: null, upload: null },
-        result:     null,
-        error:      '',
+        running:  false,
+        phase:    null,
+        liveMbps: { download: null, upload: null },
+        result:   null,
+        error:    '',
       },
     };
   },
 
   computed: {
-    phaseLabel() {
-      return PHASE_LABELS[this.browserTest.phase] || 'Testando...';
-    },
     windowStart() {
       return new Date(this.windowEnd.getTime() - 24 * 60 * 60 * 1000);
     },
@@ -292,15 +237,6 @@ export default {
   },
 
   methods: {
-    fmt(v) {
-      return v == null ? '—' : Number(v).toFixed(1);
-    },
-    liveOrFinal(key) {
-      if (this.browserTest.result) return this.browserTest.result[key];
-      const phase = key === 'download_mbps' ? 'download' : 'upload';
-      return this.browserTest.liveMbps[phase];
-    },
-
     deviceSubtitle(d) {
       const parts = [];
       if (d.connType && d.connType !== 'unknown') {
@@ -406,12 +342,13 @@ export default {
 
     async runBrowserTest() {
       this.browserTest = {
-        running: true,
-        phase: 'ping',
+        running:  true,
+        phase:    'ping',
         liveMbps: { download: null, upload: null },
-        result: null,
-        error: '',
+        result:   null,
+        error:    '',
       };
+      this.showTestResult = true;
       try {
         const result = await runLanTest({
           onPhase: (name) => { this.browserTest.phase = name; },
@@ -425,14 +362,6 @@ export default {
       } finally {
         this.browserTest.running = false;
       }
-    },
-
-    clearBrowserTest() {
-      this.browserTest = {
-        running: false, phase: null,
-        liveMbps: { download: null, upload: null },
-        result: null, error: '',
-      };
     },
   },
 };

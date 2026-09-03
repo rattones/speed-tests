@@ -1,12 +1,12 @@
 <template>
-  <div class="bg-gray-800 rounded-xl p-6">
+  <div class="bg-gray-800 rounded-xl h-full flex flex-col overflow-hidden" style="padding: clamp(0.6rem, 1.6vh, 1.5rem);">
 
     <!-- Header -->
-    <div class="flex flex-col gap-3 mb-4">
+    <div class="flex flex-col flex-shrink-0" style="gap: clamp(0.4rem, 1vh, 0.75rem); margin-bottom: clamp(0.4rem, 1vh, 1rem);">
 
       <!-- Linha 1: título + botão de filtro / limpar -->
       <div class="flex items-center justify-between">
-        <h2 class="text-lg font-semibold text-gray-300">Histórico de Velocidade</h2>
+        <h2 class="font-semibold text-gray-300" style="font-size: clamp(0.9rem, 1.6vh, 1.125rem);">Histórico de Velocidade</h2>
 
         <button
           v-if="mode === 'search'"
@@ -101,19 +101,20 @@
     <!-- Sem dados -->
     <div
       v-if="wans.every((w) => !w.tests.length)"
-      class="flex items-center justify-center h-64 text-gray-500"
+      class="flex-1 min-h-0 flex items-center justify-center text-gray-500"
     >
       Nenhum dado disponível no período
     </div>
 
     <!-- Gráfico -->
-    <vue-apex-charts
-      v-else
-      type="line"
-      height="350"
-      :options="chartOptions"
-      :series="series"
-    />
+    <div v-else class="flex-1 min-h-0">
+      <vue-apex-charts
+        type="line"
+        height="100%"
+        :options="chartOptions"
+        :series="series"
+      />
+    </div>
 
   </div>
 </template>
