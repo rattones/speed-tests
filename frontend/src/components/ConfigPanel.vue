@@ -34,7 +34,7 @@
         </section>
 
         <!-- Lista de WANs -->
-        <section>
+        <section v-if="activeTab === 'wans'">
           <div class="flex items-center justify-between mb-3">
             <h3 class="text-sm font-semibold text-gray-300">WANs monitoradas</h3>
             <button
@@ -93,7 +93,7 @@
         </section>
 
         <!-- Lista de dispositivos da rede local -->
-        <section>
+        <section v-else>
           <h3 class="text-sm font-semibold text-gray-300 mb-1">Dispositivos da rede local</h3>
           <p class="text-xs text-gray-500 mb-3">
             Cadastrados automaticamente quando o agente envia a primeira medição. Aqui você
@@ -169,6 +169,7 @@ export default {
 
   props: {
     cronInterval: { type: String, required: true },
+    activeTab:    { type: String, default: 'wans' },
   },
 
   data() {
@@ -185,7 +186,11 @@ export default {
   },
 
   async mounted() {
-    await Promise.all([this.fetchAllWans(), this.fetchAllDevices()]);
+    if (this.activeTab === 'lan') {
+      await this.fetchAllDevices();
+    } else {
+      await this.fetchAllWans();
+    }
   },
 
   methods: {
@@ -350,7 +355,7 @@ export default {
     },
 
     async deleteDevice(device) {
-      if (!confirm(`Remover ${device.name}? O histórico de medições será preservado.`)) return;
+      if (!confirm(`Remover ${device.name}? O dispositivo e todo o seu histórico de medições serão apagados definitivamente.`)) return;
       this.errorMsg = '';
       try {
         const res = await fetch(`/api/lan/devices/${device.id}`, { method: 'DELETE' });

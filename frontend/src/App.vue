@@ -52,6 +52,7 @@
     <config-panel
       v-if="showConfig"
       :cron-interval="config.cronInterval"
+      :active-tab="activeTab"
       @close="showConfig = false"
       @changed="onConfigChanged"
     />
