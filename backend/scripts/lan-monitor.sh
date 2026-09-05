@@ -235,8 +235,50 @@ detect_mac() {
   fi
 }
 
+# interface está com link ativo? (evita pegar o MAC de um adaptador
+# desconectado/down no fallback abaixo)
+iface_is_up() {
+  local dev="$1"
+  if [[ "$OS" == "macos" ]]; then
+    ifconfig "$dev" 2>/dev/null | grep -q 'status: active'
+  else
+    [[ "$(cat "/sys/class/net/$dev/operstate" 2>/dev/null)" == "up" ]]
+  fi
+}
+
+# se a interface da rota default não tiver link ativo, não confia nela
+if [[ -n "$IFACE" ]] && ! iface_is_up "$IFACE"; then
+  IFACE=""
+fi
+
 RAW_MAC="$(detect_mac "$IFACE" || true)"
-# fallback: primeiro MAC não-loopback não-zero
+
+# fallback: primeiro MAC de interface FÍSICA e COM LINK ATIVO,
+# não-loopback, não-zerado (ignora interfaces virtuais comuns)
+if [[ -z "$RAW_MAC" ]]; then
+  if [[ "$OS" == "macos" ]]; then
+    for d in $(ifconfig -l 2>/dev/null); do
+      case "$d" in lo*|utun*|awdl*|llw*|bridge*|gif*|stf*|p2p*|anpi*) continue ;; esac
+      iface_is_up "$d" || continue
+      m="$(ifconfig "$d" 2>/dev/null | awk '/ether/{print $2; exit}')"
+      [[ -z "$m" || "$m" == "00:00:00:00:00:00" ]] && continue
+      RAW_MAC="$m"; IFACE="$d"; break
+    done
+  else
+    for f in /sys/class/net/*/address; do
+      d="$(basename "$(dirname "$f")")"
+      case "$d" in lo|docker*|veth*|br-*|virbr*|tun*|tap*|vmnet*|vboxnet*|wg*) continue ;; esac
+      iface_is_up "$d" || continue
+      m="$(cat "$f")"
+      [[ "$m" == "00:00:00:00:00:00" ]] && continue
+      RAW_MAC="$m"; IFACE="$d"; break
+    done
+  fi
+fi
+
+# último recurso: se nenhuma interface com link ativo foi encontrada,
+# volta a aceitar qualquer MAC não-loopback/não-zero (mesmo down), para
+# não travar o script — mas isso não deveria ocorrer em uso normal.
 if [[ -z "$RAW_MAC" ]]; then
   if [[ "$OS" == "macos" ]]; then
     RAW_MAC="$(ifconfig 2>/dev/null | awk '/ether/{print $2; exit}')"
