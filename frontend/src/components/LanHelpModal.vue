@@ -168,7 +168,7 @@ export default {
     },
     installHint() {
       if (this.os === 'windows') {
-        return 'Cria a tarefa <span class="font-mono">SpeedMonitor-LanMonitor</span>, que roda em janela oculta e é reiniciada pelo Windows se o processo cair.';
+        return 'Cria a tarefa <span class="font-mono">SpeedMonitor-LanMonitor</span>, que roda em modo oculto (sem nenhuma janela de console) e é reiniciada pelo Windows se o processo cair.';
       }
       if (this.os === 'macos') {
         return 'Cria um <span class="font-mono">LaunchAgent</span> que inicia no login e é mantido vivo pelo <span class="font-mono">launchd</span>.';
@@ -178,9 +178,9 @@ export default {
     loopCmd() {
       if (this.os === 'windows') {
         return [
-          '# roda em loop em background (janela oculta), com o intervalo das configurações do servidor:',
-          `powershell -ExecutionPolicy Bypass -WindowStyle Hidden -File .\\lan-monitor.ps1 \``,
-          `  -Server ${this.origin} -Name "Meu PC"`,
+          '# roda em loop em background (modo oculto, sem janela), com o intervalo das configurações do servidor:',
+          `powershell -ExecutionPolicy Bypass -File .\\lan-monitor.ps1 \``,
+          `  -Server ${this.origin} -Name "Meu PC" -Hidden`,
         ].join('\n');
       }
       return [

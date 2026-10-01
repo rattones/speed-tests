@@ -23,12 +23,20 @@
  Se a execucao de scripts estiver bloqueada:
    powershell -ExecutionPolicy Bypass -File .\lan-monitor.ps1 -Server http://192.168.1.10:8020
 
+ RODAR EM MODO OCULTO (sem janela):
+   powershell -ExecutionPolicy Bypass -File .\lan-monitor.ps1 -Server http://192.168.1.10:8020 -Hidden
+   Relanca o loop em segundo plano por meio de um lancador .vbs (wscript.exe),
+   que inicia o PowerShell sem criar janela de console -- nem o "piscar"
+   que -WindowStyle Hidden sozinho provoca. O terminal atual e liberado
+   na hora. Para parar: Get-Process powershell | Stop-Process (ou use -Install).
+
  INICIAR JUNTO COM O WINDOWS (recomendado):
    powershell -ExecutionPolicy Bypass -File .\lan-monitor.ps1 `
      -Server http://192.168.1.10:8020 -Name "PC Sala" -Install
    Cria uma Tarefa Agendada "SpeedMonitor-LanMonitor" com gatilho "Ao fazer logon",
-   que roda em janela oculta e e reiniciada pelo Windows se cair. O script e copiado
-   para %LOCALAPPDATA%\SpeedMonitor\ -- pode apagar o arquivo baixado depois.
+   totalmente oculta (lancada via wscript.exe + .vbs, sem janela de console) e
+   reiniciada pelo Windows se cair. O script e copiado para
+   %LOCALAPPDATA%\SpeedMonitor\ -- pode apagar o arquivo baixado depois.
    O intervalo e resolvido nesse momento (a partir do cronInterval do servidor,
    a menos que -Interval tenha sido informado) e gravado fixo na tarefa instalada.
 
@@ -51,6 +59,7 @@ param(
   [int]    $Interval = 0,
   [string] $Name = "",
   [switch] $Once,
+  [switch] $Hidden,
   [switch] $Install,
   [switch] $Uninstall
 )
@@ -67,6 +76,7 @@ $ErrorActionPreference = "Stop"
 $TaskName    = "SpeedMonitor-LanMonitor"
 $InstallDir  = Join-Path $env:LOCALAPPDATA "SpeedMonitor"
 $InstalledScript = Join-Path $InstallDir "lan-monitor.ps1"
+$Launcher    = Join-Path $InstallDir "lan-monitor-hidden.vbs"
 $LogFile     = Join-Path $InstallDir "payloads.log"
 $LogMaxBytes = 10240
 
@@ -134,15 +144,42 @@ if ($Interval -le 0) {
   }
 }
 
+# ── Lancador oculto (.vbs) ─────────────────────────────────────────────────
+# powershell.exe e um aplicativo de console: o Windows cria a janela ANTES de
+# o parametro -WindowStyle Hidden ser processado, entao ela "pisca" (e, numa
+# tarefa agendada interativa, pode ficar visivel). wscript.exe e um app de
+# janela: WScript.Shell.Run com estilo 0 inicia o PowerShell sem console algum.
+# O wscript espera (True) o PowerShell terminar, assim a Tarefa Agendada ve o
+# processo como "em execucao" e o reinicia se ele cair.
+function New-HiddenLauncher([string] $ScriptPath) {
+  $psArgs = "-NoProfile -NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$ScriptPath`" -Server $Server -Interval $Interval"
+  if (-not [string]::IsNullOrWhiteSpace($Name)) { $psArgs += " -Name `"$Name`"" }
+  $cmd = ("powershell.exe " + $psArgs) -replace '"', '""'
+  $vbs = @(
+    "' Speed Monitor - lancador oculto do lan-monitor.ps1 (gerado automaticamente)"
+    'Set sh = CreateObject("WScript.Shell")'
+    "sh.Run `"$cmd`", 0, True"
+  ) -join "`r`n"
+  New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
+  Set-Content -Path $Launcher -Value $vbs -Encoding ASCII
+  return $Launcher
+}
+
+# ── -Hidden: relanca em segundo plano, sem janela, e libera o terminal ──────
+if ($Hidden -and -not $Install) {
+  $vbs = New-HiddenLauncher $PSCommandPath
+  Start-Process -FilePath "wscript.exe" -ArgumentList "//B //Nologo `"$vbs`"" -WindowStyle Hidden
+  Write-Host "[lan-monitor] iniciado em modo oculto (intervalo ${Interval}s). Para parar: Get-Process powershell | Stop-Process"
+  exit 0
+}
+
 # ── Instalacao como Tarefa Agendada de auto-inicio ─────────────────────────
 if ($Install) {
   New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
   Copy-Item -Path $PSCommandPath -Destination $InstalledScript -Force
+  $vbs = New-HiddenLauncher $InstalledScript
 
-  $argLine = "-ExecutionPolicy Bypass -WindowStyle Hidden -File `"$InstalledScript`" -Server $Server -Interval $Interval"
-  if (-not [string]::IsNullOrWhiteSpace($Name)) { $argLine += " -Name `"$Name`"" }
-
-  $action   = New-ScheduledTaskAction -Execute "powershell.exe" -Argument $argLine
+  $action   = New-ScheduledTaskAction -Execute "wscript.exe" -Argument "//B //Nologo `"$vbs`""
   $trigger  = New-ScheduledTaskTrigger -AtLogOn
   $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries `
                 -StartWhenAvailable -RestartInterval (New-TimeSpan -Minutes 1) -RestartCount 999
@@ -150,7 +187,7 @@ if ($Install) {
     Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $trigger -Settings $settings `
       -Description "Speed Monitor - agente de rede local" -Force | Out-Null
     Start-ScheduledTask -TaskName $TaskName
-    Write-Host "[lan-monitor] Tarefa agendada instalada e iniciada. Roda a cada logon, em janela oculta."
+    Write-Host "[lan-monitor] Tarefa agendada instalada e iniciada. Roda a cada logon, em modo oculto (sem janela)."
   } catch {
     Write-Error "Falha ao registrar a tarefa: $($_.Exception.Message)"
     exit 1

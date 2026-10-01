@@ -158,6 +158,7 @@ chmod +x lan-monitor.sh
 # Windows (PowerShell)
 Invoke-WebRequest http://<ip-do-host>:8020/api/lan/agent/windows -OutFile lan-monitor.ps1
 powershell -ExecutionPolicy Bypass -File .\lan-monitor.ps1 -Server http://<ip-do-host>:8020 -Once -Name "PC Sala"
+powershell -ExecutionPolicy Bypass -File .\lan-monitor.ps1 -Server http://<ip-do-host>:8020 -Name "PC Sala" -Hidden      # loop em segundo plano, sem janela
 powershell -ExecutionPolicy Bypass -File .\lan-monitor.ps1 -Server http://<ip-do-host>:8020 -Interval 300 -Name "PC Sala" -Install
 powershell -ExecutionPolicy Bypass -File .\lan-monitor.ps1 -Uninstall
 ```

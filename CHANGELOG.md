@@ -9,6 +9,7 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 ## [Não lançado]
 
 ### Alterado
+- `scripts/lan-monitor.ps1` — execução em modo oculto de verdade: a Tarefa Agendada (`-Install`) agora é lançada por `wscript.exe` através de um lançador `lan-monitor-hidden.vbs` (gerado em `%LOCALAPPDATA%\SpeedMonitor\`) que inicia o PowerShell com estilo de janela 0, eliminando a janela de console que `-WindowStyle Hidden` sozinho deixava aparecer/piscar. Nova opção `-Hidden` para rodar o loop manual do mesmo modo, liberando o terminal
 - `scripts/lan-monitor.sh` e `scripts/lan-monitor.ps1` — quando `--interval`/`-Interval` não é informado, o intervalo entre medições é obtido automaticamente do servidor (`GET /api/config`, campo `cronInterval`, o mesmo intervalo de coleta configurado para as WANs) em vez do fixo de 300s; se o servidor não responder ou a expressão cron não for reconhecida, mantém o fallback de 300s. O valor resolvido é gravado fixo no serviço/tarefa ao instalar (`--install`/`-Install`)
 
 ### Adicionado
