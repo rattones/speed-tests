@@ -27,6 +27,8 @@ services:
       - ./data:/data
       # Arquivo de configuração (somente leitura)
       - ./.env:/app/.env:ro
+      # Manifest do projeto (versão exibida no rodapé)
+      - ./manifest.json:/app/manifest.json:ro
     env_file:
       - .env
 

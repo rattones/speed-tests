@@ -8,11 +8,24 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ## [Não lançado]
 
+---
+
+## [2.7.0] — 2026-10-01
+
+Versão `2.x` passa a contar os ajustes, correções e melhorias feitos desde a criação do monitoramento de rede local (7 até aqui).
+
 ### Alterado
+- `WanCard.vue` — cores de download/upload em três níveis em relação ao mínimo configurado: vermelho (abaixo do mínimo), amarelo (até 20% acima) e verde (mais de 20% acima); sem mínimo configurado, mantém branco
 - `scripts/lan-monitor.ps1` — execução em modo oculto de verdade: a Tarefa Agendada (`-Install`) agora é lançada por `wscript.exe` através de um lançador `lan-monitor-hidden.vbs` (gerado em `%LOCALAPPDATA%\SpeedMonitor\`) que inicia o PowerShell com estilo de janela 0, eliminando a janela de console que `-WindowStyle Hidden` sozinho deixava aparecer/piscar. Nova opção `-Hidden` para rodar o loop manual do mesmo modo, liberando o terminal
 - `scripts/lan-monitor.sh` e `scripts/lan-monitor.ps1` — quando `--interval`/`-Interval` não é informado, o intervalo entre medições é obtido automaticamente do servidor (`GET /api/config`, campo `cronInterval`, o mesmo intervalo de coleta configurado para as WANs) em vez do fixo de 300s; se o servidor não responder ou a expressão cron não for reconhecida, mantém o fallback de 300s. O valor resolvido é gravado fixo no serviço/tarefa ao instalar (`--install`/`-Install`)
 
 ### Adicionado
+
+#### Versão do projeto
+- `manifest.json` (novo, raiz) — manifest do projeto com nome, versão, autor, repositório, runtime, componentes e funcionalidades; `backend/package.json` sincronizado na mesma versão
+- `routes/version.js` (novo) — `GET /api/version` → `{ current, latest, updateAvailable }`: versão local lida do `manifest.json` (fallback `package.json`), comparada com o `manifest.json` do branch `master` no GitHub (cache de 1h, timeout de 5s; sem resposta do GitHub, não há aviso)
+- `App.vue` — versão exibida no rodapé; quando há versão mais recente no GitHub, fica em vermelho com o link "atualização disponível (vX.Y.Z)"
+- `Dockerfile` / `docker-compose.yml` — `manifest.json` copiado/montado em `/app/manifest.json`
 
 #### Monitoramento de rede local (máquina = WAN)
 

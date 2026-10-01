@@ -68,7 +68,24 @@
           Intervalo de coleta das WANs: <span class="text-gray-300 font-mono">{{ config.cronInterval }}</span>
         </p>
         <div class="text-gray-500 text-right" style="font-size: clamp(0.65rem, 1.2vh, 0.875rem);">
-          <p>Desenvolvido por: <span class="text-gray-300">Marcelo Ratton</span></p>
+          <p>
+            Desenvolvido por: <span class="text-gray-300">Marcelo Ratton</span>
+            <template v-if="version.current">
+              ·
+              <span
+                class="font-mono"
+                :class="version.updateAvailable ? 'text-red-400 font-semibold' : 'text-gray-300'"
+                :title="version.updateAvailable ? `Versão mais recente: v${version.latest}` : 'Versão instalada'"
+              >v{{ version.current }}</span>
+              <a
+                v-if="version.updateAvailable"
+                href="https://github.com/rattones/speed-tests"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="text-red-400 hover:text-red-300 transition-colors"
+              >— atualização disponível (v{{ version.latest }})</a>
+            </template>
+          </p>
           <a
             href="https://github.com/rattones/speed-tests"
             target="_blank"
@@ -107,10 +124,16 @@ export default {
       config: {
         cronInterval: '*/15 * * * *',
       },
+      version: {
+        current:         null,
+        latest:          null,
+        updateAvailable: false,
+      },
     };
   },
 
   async mounted() {
+    this.fetchVersion();
     await this.fetchConfig();
   },
 
@@ -122,6 +145,16 @@ export default {
         this.config = await res.json();
       } catch (err) {
         console.error('[App] Erro ao carregar config:', err);
+      }
+    },
+
+    async fetchVersion() {
+      try {
+        const res = await fetch('/api/version');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        this.version = await res.json();
+      } catch (err) {
+        console.error('[App] Erro ao verificar versão:', err);
       }
     },
 

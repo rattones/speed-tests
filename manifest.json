@@ -1,0 +1,35 @@
+{
+  "name": "speed-monitor",
+  "displayName": "Speed Monitor",
+  "version": "2.7.0",
+  "description": "Monitor de rede com dashboard em tempo real e histórico de medições: velocidade dos links WAN (speedtest-cli Ookla) e da rede local (agente por máquina).",
+  "author": "rattones <contato@marceloratton.com>",
+  "repository": "https://github.com/rattones/speed-tests",
+  "runtime": {
+    "node": ">=20",
+    "container": "docker",
+    "port": 8020
+  },
+  "components": {
+    "backend": {
+      "path": "backend",
+      "entry": "server.js",
+      "stack": ["Node.js 20", "Express", "node-cron", "SQLite3 (better-sqlite3)"]
+    },
+    "frontend": {
+      "path": "frontend",
+      "entry": "index.html",
+      "stack": ["Vue 3 (CDN)", "Tailwind CSS (CDN)", "ApexCharts"]
+    },
+    "agents": {
+      "linux-macos": "backend/scripts/lan-monitor.sh",
+      "windows": "backend/scripts/lan-monitor.ps1"
+    }
+  },
+  "features": [
+    "Monitoramento de WANs via speedtest-cli oficial Ookla",
+    "Monitoramento de rede local (máquina = WAN)",
+    "Configuração de WANs e dispositivos via banco de dados e UI",
+    "Gráfico de histórico com janela de 24h e filtro por período"
+  ]
+}

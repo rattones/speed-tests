@@ -29,6 +29,7 @@ RUN npm install --omit=dev --no-audit --no-fund
 # ── Código da aplicação ───────────────────────────────────────────────────
 COPY backend/ ./
 COPY frontend/ ./public/
+COPY manifest.json ./manifest.json
 
 # Garantir que o script de teste é executável
 RUN chmod +x /app/scripts/run_speedtest.sh
