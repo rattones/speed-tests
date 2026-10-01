@@ -2,7 +2,7 @@
 .env
 .env.*
 !.env.example
-claude.md
+CLAUDE.md
 
 # Banco de dados SQLite
 *.sqlite
