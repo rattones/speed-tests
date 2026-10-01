@@ -68,7 +68,7 @@
 
       <div class="flex items-baseline justify-between">
         <span class="text-gray-400" style="font-size: clamp(0.75rem, 1.3vh, 0.875rem);">⏱ Ping</span>
-        <span class="font-mono font-semibold text-gray-200" style="font-size: clamp(1rem, 2vh, 1.25rem);">
+        <span class="font-mono font-semibold" style="font-size: clamp(1rem, 2vh, 1.25rem);" :class="pingColor">
           {{ latestTest.ping_ms.toFixed(0) }}
           <span class="font-normal text-gray-400" style="font-size: clamp(0.7rem, 1.2vh, 0.875rem);">ms</span>
         </span>
@@ -142,6 +142,14 @@ export default {
       const ul = this.latestTest.upload_mbps;
       if (ul < this.minUpload)        return 'text-red-400';
       if (ul <= this.minUpload * 1.2) return 'text-yellow-400';
+      return 'text-green-400';
+    },
+    // Ping: menor é melhor — ruim acima do máximo, médio até 20% abaixo dele.
+    pingColor() {
+      if (!this.latestTest || this.maxPing === 0) return 'text-gray-200';
+      const ping = this.latestTest.ping_ms;
+      if (ping > this.maxPing)        return 'text-red-400';
+      if (ping >= this.maxPing * 0.8) return 'text-yellow-400';
       return 'text-green-400';
     },
   },

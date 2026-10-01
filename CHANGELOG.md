@@ -10,6 +10,14 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ---
 
+## [2.8.0] — 2026-10-01
+
+### Alterado
+- `WanCard.vue` — cor do ping em três níveis em relação ao máximo configurado (menor é melhor): vermelho (acima do máximo), amarelo (até 20% abaixo do máximo) e verde (mais de 20% abaixo); sem máximo configurado, mantém cinza claro
+- `projeto.md` — reescrito para refletir as funcionalidades atuais (WANs dinâmicas, rede local, agentes, API, dashboard, versão), no lugar da especificação original de duas WANs com Web Push
+
+---
+
 ## [2.7.0] — 2026-10-01
 
 Versão `2.x` passa a contar os ajustes, correções e melhorias feitos desde a criação do monitoramento de rede local (7 até aqui).
