@@ -132,11 +132,17 @@ export default {
     },
     downloadColor() {
       if (!this.latestTest || this.minDownload === 0) return 'text-white';
-      return this.latestTest.download_mbps >= this.minDownload ? 'text-green-400' : 'text-red-400';
+      const dl = this.latestTest.download_mbps;
+      if (dl < this.minDownload)       return 'text-red-400';
+      if (dl <= this.minDownload * 1.2) return 'text-yellow-400';
+      return 'text-green-400';
     },
     uploadColor() {
       if (!this.latestTest || this.minUpload === 0) return 'text-white';
-      return this.latestTest.upload_mbps >= this.minUpload ? 'text-green-400' : 'text-red-400';
+      const ul = this.latestTest.upload_mbps;
+      if (ul < this.minUpload)        return 'text-red-400';
+      if (ul <= this.minUpload * 1.2) return 'text-yellow-400';
+      return 'text-green-400';
     },
   },
 
