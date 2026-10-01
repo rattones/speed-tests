@@ -83,7 +83,7 @@
                 target="_blank"
                 rel="noopener noreferrer"
                 class="text-red-400 hover:text-red-300 transition-colors"
-              >— atualização disponível (v{{ version.latest }})</a>
+              > — atualização disponível (v{{ version.latest }})</a>
             </template>
           </p>
           <a
