@@ -116,23 +116,24 @@ fi
 SERVER_URL="${SERVER_URL%/}"
 
 # ── Intervalo: usa o informado (--interval/INTERVAL) ou busca do servidor ──
-# Converte uma expressão cron simples ("*" ou "*/N" por campo: minuto hora
-# dia-do-mês mês dia-da-semana) no intervalo equivalente em segundos. Só
-# suporta o subconjunto usado pelo cronInterval do dashboard (campo */N mais
-# à esquerda define o passo; os demais devem ser "*"). Qualquer outro padrão
-# cai no fallback.
+# Converte uma expressão cron simples (minuto hora dia-do-mês mês
+# dia-da-semana) no intervalo equivalente em segundos. O primeiro campo
+# (minuto → hora) que não é um valor fixo define o passo — "*" = 1, "*/N" = N;
+# ex.: "*/15 * * * *" = 900s, "2 * * * *" = 3600s, "0 */6 * * *" = 21600s,
+# "30 3 * * *" = 86400s. Qualquer outro padrão cai no fallback.
+cron_step() {
+  [[ "$1" == "*" ]] && { echo 1; return 0; }
+  [[ "$1" =~ ^\*/([0-9]+)$ && "${BASH_REMATCH[1]}" -gt 0 ]] && { echo "${BASH_REMATCH[1]}"; return 0; }
+  return 1
+}
+
 cron_to_seconds() {
-  local expr="$1" minute hour
+  local expr="$1" minute hour step
   read -r minute hour _ <<<"$expr"
-  if [[ "$minute" =~ ^\*/([0-9]+)$ ]]; then
-    echo $(( ${BASH_REMATCH[1]} * 60 )); return 0
-  fi
-  if [[ "$minute" == "*" && "$hour" =~ ^\*/([0-9]+)$ ]]; then
-    echo $(( ${BASH_REMATCH[1]} * 3600 )); return 0
-  fi
-  if [[ "$minute" == "*" ]]; then
-    echo 60; return 0
-  fi
+  if step="$(cron_step "$minute")"; then echo $(( step * 60 )); return 0; fi
+  [[ "$minute" =~ ^[0-9]+$ ]] || return 1
+  if step="$(cron_step "$hour")"; then echo $(( step * 3600 )); return 0; fi
+  [[ "$hour" =~ ^[0-9]+$ ]] && { echo 86400; return 0; }
   return 1
 }
 
@@ -150,7 +151,8 @@ fetch_interval_from_server() {
 INTERVAL_FIXED=0
 [[ -n "$INTERVAL" ]] && INTERVAL_FIXED=1
 
-if [[ -z "$INTERVAL" ]]; then
+# Na instalação não é preciso resolver: o serviço busca o intervalo ao iniciar.
+if [[ -z "$INTERVAL" && "$DO_INSTALL" -eq 0 ]]; then
   if INTERVAL="$(fetch_interval_from_server)"; then
     echo "[lan-monitor] intervalo obtido do servidor (cronInterval): ${INTERVAL}s"
   else

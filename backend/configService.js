@@ -103,18 +103,27 @@ function setCronInterval(value) {
   upsertSettingStmt.run({ key: 'cron_interval', value });
 }
 
-// Converte o cronInterval (subconjunto "*/N" usado pelo dashboard) em segundos,
-// para os agentes de rede local saberem quando medir de novo. Mesma regra dos
-// scripts lan-monitor: campo */N mais à esquerda define o passo; "*" no minuto
-// = 60s; qualquer outro padrão cai no padrão de 300s.
+// Converte o cronInterval em segundos, para os agentes de rede local saberem
+// quando medir de novo. Mesma regra dos scripts lan-monitor: o primeiro campo
+// (minuto → hora) que não é um valor fixo define o passo — "*" = 1, "*/N" = N;
+// ex.: "*/15 * * * *" = 900s, "2 * * * *" = 3600s, "0 */6 * * *" = 21600s,
+// "30 3 * * *" = 86400s. Qualquer outro padrão cai no padrão de 300s.
 const DEFAULT_LAN_INTERVAL_SECONDS = 300;
+
+function cronStep(field) {
+  if (field === '*') return 1;
+  const m = /^\*\/(\d+)$/.exec(field || '');
+  return m && Number(m[1]) > 0 ? Number(m[1]) : null;
+}
 
 function getLanIntervalSeconds() {
   const [minute, hour] = getCronInterval().trim().split(/\s+/);
-  let m;
-  if ((m = /^\*\/(\d+)$/.exec(minute))) return Number(m[1]) * 60;
-  if (minute === '*' && (m = /^\*\/(\d+)$/.exec(hour || ''))) return Number(m[1]) * 3600;
-  if (minute === '*') return 60;
+  const isFixed = (f) => /^\d+$/.test(f || '');
+  let step;
+  if ((step = cronStep(minute))) return step * 60;
+  if (!isFixed(minute)) return DEFAULT_LAN_INTERVAL_SECONDS;
+  if ((step = cronStep(hour))) return step * 3600;
+  if (isFixed(hour)) return 86400;
   return DEFAULT_LAN_INTERVAL_SECONDS;
 }
 

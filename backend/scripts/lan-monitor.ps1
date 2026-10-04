@@ -104,18 +104,27 @@ if ([string]::IsNullOrWhiteSpace($Server)) {
 $Server = $Server.TrimEnd("/")
 
 # ── Intervalo: usa o informado (-Interval) ou busca do servidor ───────────
-# Converte uma expressao cron simples ("*" ou "*/N" por campo: minuto hora
-# dia-do-mes mes dia-da-semana) no intervalo equivalente em segundos. So
-# suporta o subconjunto usado pelo cronInterval do dashboard (campo */N mais
-# a esquerda define o passo; os demais devem ser "*"). Qualquer outro padrao
-# cai no fallback.
+# Converte uma expressao cron simples (minuto hora dia-do-mes mes
+# dia-da-semana) no intervalo equivalente em segundos. O primeiro campo
+# (minuto -> hora) que nao e um valor fixo define o passo -- "*" = 1, "*/N" = N;
+# ex.: "*/15 * * * *" = 900s, "2 * * * *" = 3600s, "0 */6 * * *" = 21600s,
+# "30 3 * * *" = 86400s. Qualquer outro padrao cai no fallback.
+function Get-CronStep([string] $Field) {
+  if ($Field -eq '*') { return 1 }
+  if ($Field -match '^\*/(\d+)$' -and [int]$Matches[1] -gt 0) { return [int]$Matches[1] }
+  return $null
+}
+
 function ConvertFrom-CronToSeconds([string] $Expr) {
-  $parts = $Expr -split '\s+'
+  $parts = $Expr.Trim() -split '\s+'
   if ($parts.Count -lt 2) { return $null }
   $minute = $parts[0]; $hour = $parts[1]
-  if ($minute -match '^\*/(\d+)$') { return [int]$Matches[1] * 60 }
-  if ($minute -eq '*' -and $hour -match '^\*/(\d+)$') { return [int]$Matches[1] * 3600 }
-  if ($minute -eq '*') { return 60 }
+  $step = Get-CronStep $minute
+  if ($step) { return $step * 60 }
+  if ($minute -notmatch '^\d+$') { return $null }
+  $step = Get-CronStep $hour
+  if ($step) { return $step * 3600 }
+  if ($hour -match '^\d+$') { return 86400 }
   return $null
 }
 
@@ -139,7 +148,8 @@ function Get-IntervalFromServer {
 # $IntervalFixed: informado pelo usuario -- nao e sobrescrito pelo servidor.
 $IntervalFixed = $Interval -gt 0
 
-if ($Interval -le 0) {
+# Na instalacao/modo oculto nao e preciso resolver: o loop lancado busca sozinho.
+if ($Interval -le 0 -and -not $Install -and -not $Hidden) {
   $fromServer = Get-IntervalFromServer
   if ($fromServer) {
     $Interval = $fromServer
@@ -176,7 +186,8 @@ function New-HiddenLauncher([string] $ScriptPath) {
 if ($Hidden -and -not $Install) {
   $vbs = New-HiddenLauncher $PSCommandPath
   Start-Process -FilePath "wscript.exe" -ArgumentList "//B //Nologo `"$vbs`"" -WindowStyle Hidden
-  Write-Host "[lan-monitor] iniciado em modo oculto (intervalo ${Interval}s). Para parar: Get-Process powershell | Stop-Process"
+  $intervalInfo = if ($IntervalFixed) { "intervalo ${Interval}s" } else { "intervalo definido pelo servidor" }
+  Write-Host "[lan-monitor] iniciado em modo oculto ($intervalInfo). Para parar: Get-Process powershell | Stop-Process"
   exit 0
 }
 

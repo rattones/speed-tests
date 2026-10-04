@@ -10,6 +10,14 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ---
 
+## [2.9.1] — 2026-10-04
+
+### Corrigido
+- `configService.js`, `scripts/lan-monitor.sh` e `scripts/lan-monitor.ps1` — a conversão do intervalo de coleta (cron) em segundos só reconhecia `*`/`*/N` no minuto; expressões com minuto fixo, como `2 * * * *` (de hora em hora), caíam no fallback de 300s com o aviso "não foi possível obter o intervalo do servidor". Agora o primeiro campo não fixo (minuto → hora) define o passo: `2 * * * *` = 3600s, `0 */6 * * *` = 21600s, `30 3 * * *` = 86400s
+- `scripts/lan-monitor.sh` e `scripts/lan-monitor.ps1` — `--install`/`-Install`/`-Hidden` sem intervalo explícito não buscam mais o intervalo na instalação (o serviço/loop lançado busca sozinho ao iniciar), eliminando o aviso desnecessário
+
+---
+
 ## [2.9.0] — 2026-10-04
 
 ### Alterado
