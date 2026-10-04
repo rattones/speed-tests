@@ -2,7 +2,7 @@
 
 Monitor de rede com dashboard em tempo real e histórico de medições, em duas modalidades:
 
-- **WANs** — velocidade dos links de internet (via `speedtest-cli` da Ookla, isolados por Policy Routing no roteador).
+- **WANs** — velocidade, latência, jitter e perda de pacotes dos links de internet (via `speedtest-cli` da Ookla, isolados por Policy Routing no roteador).
 - **Rede Local** — velocidade e latência entre cada computador da rede e este servidor, por toda a rota (WiFi ou cabo), coletadas por um agente que roda na máquina (máquina = WAN no dashboard).
 
 Desenvolvido para uso com roteador **TP-Link Omada ER605** em configuração de load balancer. O isolamento de cada link é feito via **Policy Routing** (Roteamento de Política) no roteador, direcionando o tráfego aos servidores de teste configurados.
@@ -257,6 +257,8 @@ Arquivo SQLite em `./data/speed_tests.db`. Tabelas:
 | `download_mbps` | REAL | Velocidade de download em Mbps |
 | `upload_mbps` | REAL | Velocidade de upload em Mbps |
 | `ping_ms` | REAL | Latência em ms |
+| `jitter_ms` | REAL | Jitter (variação do ping) em ms |
+| `packet_loss` | REAL | Perda de pacotes em % — `NULL` quando o servidor Ookla não mede (ou o UDP é bloqueado) |
 | `created_at` | DATETIME | Timestamp da medição |
 
 **`wans`**
@@ -312,6 +314,8 @@ WANs e intervalo de coleta não são mais configurados por variável de ambiente
 ## Limites de alerta
 
 Cada WAN e cada dispositivo tem limites configuráveis de **download mínimo**, **upload mínimo** e **ping máximo** (⚙️ na UI). Quando uma medição fica abaixo do esperado, o card fica com o indicador vermelho e o valor destacado; limite `0` desativa a checagem daquela métrica.
+
+Nas WANs, o card mostra também o **jitter** (`±` ao lado do ping) e a **perda de pacotes** medida pelo speedtest, com cor fixa: verde em `0%`, amarelo abaixo de `1%` e vermelho a partir de `1%`. Nem todo servidor Ookla mede perda de pacotes — nesse caso o card mostra `—`; se for o caso, escolha outro servidor para a WAN.
 
 ## Segurança
 

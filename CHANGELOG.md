@@ -10,6 +10,17 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ---
 
+## [2.10.0] — 2026-10-04
+
+### Adicionado
+- Perda de pacotes e jitter nas medições WAN: o speedtest Ookla já devolvia `packetLoss` (%) e `ping.jitter` (ms) no JSON, mas só a latência era aproveitada
+  - `db.js` — migração automática: colunas `packet_loss` e `jitter_ms` em `speed_tests` (`NULL` no histórico antigo e quando o servidor Ookla não mede perda de pacotes)
+  - `scheduler.js` — grava os dois valores (coleta agendada e "Medir agora") e os inclui no log do ciclo
+  - `routes/tests.js` — `GET /api/tests` devolve `jitter_ms` e `packet_loss`
+  - `WanCard.vue` — jitter (`±`) ao lado do ping e nova linha "Perda" com cor em três níveis (verde `0%`, amarelo `< 1%`, vermelho `≥ 1%`; `—` quando não medido). Nos cards da rede local o jitter também aparece; a perda não, pois os agentes não a medem
+
+---
+
 ## [2.9.1] — 2026-10-04
 
 ### Corrigido
