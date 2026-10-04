@@ -80,17 +80,21 @@
         </span>
       </div>
 
-      <!-- Perda de pacotes: só existe nas WANs (speedtest Ookla); null = servidor não mede -->
-      <div v-if="'packet_loss' in latestTest" class="flex items-baseline justify-between">
+      <!-- Perda de pacotes: linha sempre presente para manter a altura dos cards
+           igual; sem valor (null/ausente), mostra o motivo em texto menor -->
+      <div class="flex items-baseline justify-between">
         <span class="text-gray-400" style="font-size: clamp(0.75rem, 1.3vh, 0.875rem);">📉 Perda</span>
         <span
           class="font-mono font-semibold"
           style="font-size: clamp(1rem, 2vh, 1.25rem);"
           :class="packetLossColor"
-          :title="latestTest.packet_loss == null ? 'O servidor do speedtest não mediu perda de pacotes' : 'Perda de pacotes'"
+          :title="hasPacketLoss ? 'Perda de pacotes' : packetLossUnavailableHint"
         >
-          {{ latestTest.packet_loss == null ? '—' : latestTest.packet_loss.toFixed(2) }}
-          <span v-if="latestTest.packet_loss != null" class="font-normal text-gray-400" style="font-size: clamp(0.7rem, 1.2vh, 0.875rem);">%</span>
+          <template v-if="hasPacketLoss">
+            {{ latestTest.packet_loss.toFixed(2) }}
+            <span class="font-normal text-gray-400" style="font-size: clamp(0.7rem, 1.2vh, 0.875rem);">%</span>
+          </template>
+          <span v-else class="font-sans font-normal" style="font-size: clamp(0.65rem, 1.1vh, 0.75rem);">{{ packetLossUnavailable }}</span>
         </span>
       </div>
 
@@ -132,6 +136,12 @@ export default {
     visible:     { type: Boolean, default: true },
     canRunTest:  { type: Boolean, default: true },
     subtitle:    { type: String,  default: '' },
+    // Texto exibido no lugar da perda de pacotes quando ela não foi medida
+    packetLossUnavailable:     { type: String, default: 'servidor não suporta' },
+    packetLossUnavailableHint: {
+      type: String,
+      default: 'O servidor Ookla escolhido para esta WAN não mede perda de pacotes (ou o UDP está bloqueado) — escolha outro servidor para medi-la',
+    },
   },
 
   computed: {
@@ -173,9 +183,12 @@ export default {
       return 'text-green-400';
     },
     // Perda de pacotes: 0% bom, abaixo de 1% médio, a partir de 1% ruim.
+    hasPacketLoss() {
+      return Number.isFinite(this.latestTest?.packet_loss);
+    },
     packetLossColor() {
-      const loss = this.latestTest?.packet_loss;
-      if (loss == null) return 'text-gray-500';
+      if (!this.hasPacketLoss) return 'text-gray-500';
+      const loss = this.latestTest.packet_loss;
       if (loss >= 1)    return 'text-red-400';
       if (loss > 0)     return 'text-yellow-400';
       return 'text-green-400';
