@@ -151,7 +151,7 @@ chmod +x lan-monitor.sh
 ./lan-monitor.sh --server http://<ip-do-host>:8020 --once --name "Notebook Sala"   # medição de teste
 
 # instalar como serviço de auto-início (volta sozinho após reboot):
-./lan-monitor.sh --server http://<ip-do-host>:8020 --interval 300 --name "Notebook Sala" --install
+./lan-monitor.sh --server http://<ip-do-host>:8020 --name "Notebook Sala" --install
 # parar e remover:
 ./lan-monitor.sh --uninstall
 
@@ -159,13 +159,14 @@ chmod +x lan-monitor.sh
 Invoke-WebRequest http://<ip-do-host>:8020/api/lan/agent/windows -OutFile lan-monitor.ps1
 powershell -ExecutionPolicy Bypass -File .\lan-monitor.ps1 -Server http://<ip-do-host>:8020 -Once -Name "PC Sala"
 powershell -ExecutionPolicy Bypass -File .\lan-monitor.ps1 -Server http://<ip-do-host>:8020 -Name "PC Sala" -Hidden      # loop em segundo plano, sem janela
-powershell -ExecutionPolicy Bypass -File .\lan-monitor.ps1 -Server http://<ip-do-host>:8020 -Interval 300 -Name "PC Sala" -Install
+powershell -ExecutionPolicy Bypass -File .\lan-monitor.ps1 -Server http://<ip-do-host>:8020 -Name "PC Sala" -Install
 powershell -ExecutionPolicy Bypass -File .\lan-monitor.ps1 -Uninstall
 ```
 
 Os scripts só usam ferramentas nativas do sistema (`curl`/coreutils no Linux/macOS, cmdlets padrão no Windows) — sem dependências.
 
 - `--install` / `-Install` configura o auto-início: **serviço `systemd --user`** (Linux, com `Restart=always`; rode `sudo loginctl enable-linger $USER` uma vez para rodar sem sessão aberta), **LaunchAgent** (macOS) ou **Tarefa Agendada** com gatilho "Ao fazer logon" (Windows). Não é preciso recriar nada a cada reboot.
+- **Intervalo entre medições:** a cada medição enviada, o servidor responde com o intervalo até a próxima (`nextInterval`, em segundos, derivado do intervalo de coleta configurado no dashboard) e o agente se reajusta sozinho — mudar o intervalo no ⚙️ vale para as máquinas sem reinstalar. Com `--interval`/`-Interval` informado, o valor fica fixo e o servidor é ignorado.
 - `--uninstall` / `-Uninstall` para o serviço e remove a unidade/tarefa e a cópia do script.
 
 Depois de remover na máquina, tire o card no dashboard pelo ícone **⚙️** → "Dispositivos da rede local" → **Remover** (histórico preservado; "Remover" de novo apaga em definitivo) ou **Desativar** (pausa sem perder o histórico). Nome, cor, ordem e limites de alerta de cada dispositivo também são ajustados aí.
@@ -235,7 +236,7 @@ docker exec -it speed-tests sh -c "
 | GET | `/api/lan/ping` | Resposta vazia (204) — usada para medir RTT |
 | GET | `/api/lan/download?bytes=N` | Envia N bytes aleatórios (cap `LAN_TEST_MAX_BYTES`) |
 | POST | `/api/lan/upload` | Consome e cronometra o corpo; retorna `{ bytes, ms }` |
-| POST | `/api/lan/results` | Ingestão do agente: `{ machineId, hostname, os, connType, download, upload, ping, jitter, name? }` |
+| POST | `/api/lan/results` | Ingestão do agente: `{ machineId, hostname, os, connType, download, upload, ping, jitter, name? }`; responde com `nextInterval` (segundos até a próxima medição) |
 | GET | `/api/lan/tests?days=7` | Histórico de medições LAN (`?from&to`, `?device=<id>` — mesma assinatura de `/api/tests`) |
 | GET | `/api/lan/devices` | Lista dispositivos (`?all=1` inclui removidos) |
 | POST | `/api/lan/devices` | Cria um dispositivo manualmente |

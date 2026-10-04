@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const db = require('../db');
 const deviceService = require('../deviceService');
+const configService = require('../configService');
 
 const router = Router();
 
@@ -150,6 +151,8 @@ router.post('/results', jsonBody, (req, res) => {
     upload_mbps: upload,
     ping_ms: ping,
     jitter_ms: jitter,
+    // intervalo (s) até a próxima medição — o agente reajusta o sleep a cada ciclo
+    nextInterval: configService.getLanIntervalSeconds(),
   });
 });
 

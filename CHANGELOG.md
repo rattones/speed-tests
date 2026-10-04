@@ -10,6 +10,16 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ---
 
+## [2.9.0] — 2026-10-04
+
+### Alterado
+- `routes/lan.js` — `POST /api/lan/results` passa a responder também `nextInterval`: segundos até a próxima medição, derivados do intervalo de coleta (`cronInterval`) configurado no dashboard (novo `configService.getLanIntervalSeconds()`, mesma conversão dos agentes; fallback de 300s)
+- `scripts/lan-monitor.sh` e `scripts/lan-monitor.ps1` — a cada medição aceita, o agente lê o `nextInterval` da resposta e reajusta o intervalo do loop, então mudar o intervalo no dashboard vale para as máquinas sem reinstalar. Um `--interval`/`-Interval` informado explicitamente continua fixo e ignora o servidor
+- `scripts/lan-monitor.sh` e `scripts/lan-monitor.ps1` — `--install`/`-Install` (e `-Hidden`) só gravam o intervalo no serviço/tarefa quando ele foi informado explicitamente; antes o valor obtido do servidor era congelado na instalação
+- `README.md` e `LanHelpModal.vue` — exemplos de instalação sem `--interval` fixo e explicação do `nextInterval`
+
+---
+
 ## [2.8.0] — 2026-10-01
 
 ### Alterado

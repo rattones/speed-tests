@@ -103,6 +103,21 @@ function setCronInterval(value) {
   upsertSettingStmt.run({ key: 'cron_interval', value });
 }
 
+// Converte o cronInterval (subconjunto "*/N" usado pelo dashboard) em segundos,
+// para os agentes de rede local saberem quando medir de novo. Mesma regra dos
+// scripts lan-monitor: campo */N mais à esquerda define o passo; "*" no minuto
+// = 60s; qualquer outro padrão cai no padrão de 300s.
+const DEFAULT_LAN_INTERVAL_SECONDS = 300;
+
+function getLanIntervalSeconds() {
+  const [minute, hour] = getCronInterval().trim().split(/\s+/);
+  let m;
+  if ((m = /^\*\/(\d+)$/.exec(minute))) return Number(m[1]) * 60;
+  if (minute === '*' && (m = /^\*\/(\d+)$/.exec(hour || ''))) return Number(m[1]) * 3600;
+  if (minute === '*') return 60;
+  return DEFAULT_LAN_INTERVAL_SECONDS;
+}
+
 module.exports = {
   getWans,
   getWanById,
@@ -111,6 +126,7 @@ module.exports = {
   deleteWan,
   getCronInterval,
   setCronInterval,
+  getLanIntervalSeconds,
   ValidationError,
   NotFoundError,
 };
