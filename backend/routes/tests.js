@@ -12,7 +12,7 @@ router.get('/', (req, res) => {
 
   if (from && to) {
     const base = `
-      SELECT id, interface_name, wan_id, download_mbps, upload_mbps, ping_ms, created_at
+      SELECT id, interface_name, wan_id, download_mbps, upload_mbps, ping_ms, jitter_ms, packet_loss, created_at
       FROM speed_tests
       WHERE created_at >= ? AND created_at <= ?
     `;
@@ -28,7 +28,7 @@ router.get('/', (req, res) => {
 
     if (wan) {
       rows = db.prepare(`
-        SELECT id, interface_name, wan_id, download_mbps, upload_mbps, ping_ms, created_at
+        SELECT id, interface_name, wan_id, download_mbps, upload_mbps, ping_ms, jitter_ms, packet_loss, created_at
         FROM speed_tests
         WHERE created_at >= datetime('now', 'localtime', ?)
           AND wan_id = ?
@@ -36,7 +36,7 @@ router.get('/', (req, res) => {
       `).all(`-${days} days`, Number(wan));
     } else {
       rows = db.prepare(`
-        SELECT id, interface_name, wan_id, download_mbps, upload_mbps, ping_ms, created_at
+        SELECT id, interface_name, wan_id, download_mbps, upload_mbps, ping_ms, jitter_ms, packet_loss, created_at
         FROM speed_tests
         WHERE created_at >= datetime('now', 'localtime', ?)
         ORDER BY created_at ASC

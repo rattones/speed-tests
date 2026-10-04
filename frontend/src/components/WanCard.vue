@@ -71,6 +71,26 @@
         <span class="font-mono font-semibold" style="font-size: clamp(1rem, 2vh, 1.25rem);" :class="pingColor">
           {{ latestTest.ping_ms.toFixed(0) }}
           <span class="font-normal text-gray-400" style="font-size: clamp(0.7rem, 1.2vh, 0.875rem);">ms</span>
+          <span
+            v-if="latestTest.jitter_ms != null"
+            class="font-normal text-gray-400"
+            style="font-size: clamp(0.7rem, 1.2vh, 0.875rem);"
+            title="Jitter (variação do ping)"
+          >±{{ latestTest.jitter_ms.toFixed(0) }}</span>
+        </span>
+      </div>
+
+      <!-- Perda de pacotes: só existe nas WANs (speedtest Ookla); null = servidor não mede -->
+      <div v-if="'packet_loss' in latestTest" class="flex items-baseline justify-between">
+        <span class="text-gray-400" style="font-size: clamp(0.75rem, 1.3vh, 0.875rem);">📉 Perda</span>
+        <span
+          class="font-mono font-semibold"
+          style="font-size: clamp(1rem, 2vh, 1.25rem);"
+          :class="packetLossColor"
+          :title="latestTest.packet_loss == null ? 'O servidor do speedtest não mediu perda de pacotes' : 'Perda de pacotes'"
+        >
+          {{ latestTest.packet_loss == null ? '—' : latestTest.packet_loss.toFixed(2) }}
+          <span v-if="latestTest.packet_loss != null" class="font-normal text-gray-400" style="font-size: clamp(0.7rem, 1.2vh, 0.875rem);">%</span>
         </span>
       </div>
 
@@ -150,6 +170,14 @@ export default {
       const ping = this.latestTest.ping_ms;
       if (ping > this.maxPing)        return 'text-red-400';
       if (ping >= this.maxPing * 0.8) return 'text-yellow-400';
+      return 'text-green-400';
+    },
+    // Perda de pacotes: 0% bom, abaixo de 1% médio, a partir de 1% ruim.
+    packetLossColor() {
+      const loss = this.latestTest?.packet_loss;
+      if (loss == null) return 'text-gray-500';
+      if (loss >= 1)    return 'text-red-400';
+      if (loss > 0)     return 'text-yellow-400';
       return 'text-green-400';
     },
   },

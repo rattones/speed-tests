@@ -85,6 +85,15 @@ if (!speedTestsCols.some((c) => c.name === 'wan_id')) {
   db.exec(`ALTER TABLE speed_tests ADD COLUMN wan_id INTEGER REFERENCES wans(id)`);
 }
 
+// ── Migração: perda de pacotes (%) e jitter (ms) do speedtest — NULL no histórico
+// antigo e quando o servidor Ookla não mede perda de pacotes ──
+if (!speedTestsCols.some((c) => c.name === 'packet_loss')) {
+  db.exec(`ALTER TABLE speed_tests ADD COLUMN packet_loss REAL`);
+}
+if (!speedTestsCols.some((c) => c.name === 'jitter_ms')) {
+  db.exec(`ALTER TABLE speed_tests ADD COLUMN jitter_ms REAL`);
+}
+
 db.exec(`
   CREATE INDEX IF NOT EXISTS idx_speed_tests_interface_name ON speed_tests(interface_name);
   CREATE INDEX IF NOT EXISTS idx_speed_tests_wan_id ON speed_tests(wan_id);

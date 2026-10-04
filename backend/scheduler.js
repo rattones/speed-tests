@@ -9,8 +9,8 @@ const execFileAsync = promisify(execFile);
 const scriptPath = path.join(__dirname, 'scripts', 'run_speedtest.sh');
 
 const insertTest = db.prepare(`
-  INSERT INTO speed_tests (interface_name, wan_id, download_mbps, upload_mbps, ping_ms, created_at)
-  VALUES (@interface_name, @wan_id, @download_mbps, @upload_mbps, @ping_ms, datetime('now', 'localtime'))
+  INSERT INTO speed_tests (interface_name, wan_id, download_mbps, upload_mbps, ping_ms, jitter_ms, packet_loss, created_at)
+  VALUES (@interface_name, @wan_id, @download_mbps, @upload_mbps, @ping_ms, @jitter_ms, @packet_loss, datetime('now', 'localtime'))
 `);
 
 let activeTask = null;
@@ -32,15 +32,20 @@ async function runTest(wan) {
     const download_mbps = (result.download.bandwidth * 8) / 1_000_000;
     const upload_mbps   = (result.upload.bandwidth   * 8) / 1_000_000;
     const ping_ms       = result.ping.latency;
+    const jitter_ms     = Number.isFinite(result.ping.jitter) ? result.ping.jitter : null;
+    // packetLoss (%) só vem quando o servidor Ookla suporta o teste (e o UDP não é bloqueado)
+    const packet_loss   = Number.isFinite(result.packetLoss) ? result.packetLoss : null;
 
-    insertTest.run({ interface_name: wanName, wan_id: wanId, download_mbps, upload_mbps, ping_ms });
+    insertTest.run({ interface_name: wanName, wan_id: wanId, download_mbps, upload_mbps, ping_ms, jitter_ms, packet_loss });
 
     console.log(
       `[SCHEDULER] ${wanName}: ↓${download_mbps.toFixed(1)} Mbps ` +
-      `↑${upload_mbps.toFixed(1)} Mbps  ping:${ping_ms.toFixed(0)}ms`
+      `↑${upload_mbps.toFixed(1)} Mbps  ping:${ping_ms.toFixed(0)}ms` +
+      (jitter_ms   !== null ? ` jitter:${jitter_ms.toFixed(1)}ms` : '') +
+      `  perda:${packet_loss !== null ? `${packet_loss.toFixed(2)}%` : 'n/d'}`
     );
 
-    return { wanId, wanName, download_mbps, upload_mbps, ping_ms };
+    return { wanId, wanName, download_mbps, upload_mbps, ping_ms, jitter_ms, packet_loss };
   } catch (err) {
     console.error(`[SCHEDULER] Erro no teste de ${wanName}:`, err.message);
     return null;
