@@ -18,7 +18,10 @@
  Se -Interval nao for informado, o intervalo e obtido automaticamente do
  servidor (GET /api/config, campo cronInterval -- o mesmo intervalo de coleta
  configurado para as WANs), convertido para segundos. Se nao for possivel
- obter, usa 300s (5 min).
+ obter, usa 300s (5 min). Depois, a cada medicao enviada, o servidor responde
+ com o intervalo ate a proxima (campo nextInterval) e o agente se reajusta
+ sozinho -- mudar o intervalo no dashboard vale sem reinstalar. Com -Interval
+ informado, o valor fica fixo e o nextInterval e ignorado.
 
  Se a execucao de scripts estiver bloqueada:
    powershell -ExecutionPolicy Bypass -File .\lan-monitor.ps1 -Server http://192.168.1.10:8020
@@ -37,8 +40,8 @@
    totalmente oculta (lancada via wscript.exe + .vbs, sem janela de console) e
    reiniciada pelo Windows se cair. O script e copiado para
    %LOCALAPPDATA%\SpeedMonitor\ -- pode apagar o arquivo baixado depois.
-   O intervalo e resolvido nesse momento (a partir do cronInterval do servidor,
-   a menos que -Interval tenha sido informado) e gravado fixo na tarefa instalada.
+   So um -Interval informado explicitamente e gravado fixo na tarefa; sem ele,
+   a tarefa segue o intervalo enviado pelo servidor a cada medicao.
 
  PARAR / REMOVER o monitoramento:
    powershell -ExecutionPolicy Bypass -File .\lan-monitor.ps1 -Uninstall
@@ -133,6 +136,9 @@ function Get-IntervalFromServer {
   }
 }
 
+# $IntervalFixed: informado pelo usuario -- nao e sobrescrito pelo servidor.
+$IntervalFixed = $Interval -gt 0
+
 if ($Interval -le 0) {
   $fromServer = Get-IntervalFromServer
   if ($fromServer) {
@@ -152,7 +158,8 @@ if ($Interval -le 0) {
 # O wscript espera (True) o PowerShell terminar, assim a Tarefa Agendada ve o
 # processo como "em execucao" e o reinicia se ele cair.
 function New-HiddenLauncher([string] $ScriptPath) {
-  $psArgs = "-NoProfile -NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$ScriptPath`" -Server $Server -Interval $Interval"
+  $psArgs = "-NoProfile -NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$ScriptPath`" -Server $Server"
+  if ($IntervalFixed) { $psArgs += " -Interval $Interval" }
   if (-not [string]::IsNullOrWhiteSpace($Name)) { $psArgs += " -Name `"$Name`"" }
   $cmd = ("powershell.exe " + $psArgs) -replace '"', '""'
   $vbs = @(
@@ -374,6 +381,17 @@ function Write-PayloadLog([string] $Line) {
   } catch { }
 }
 
+# Le o nextInterval (segundos) da resposta do servidor e reajusta o intervalo
+# do loop, exceto quando o usuario fixou -Interval.
+function Update-IntervalFromResponse([string] $Body) {
+  if ($IntervalFixed -or [string]::IsNullOrWhiteSpace($Body)) { return }
+  try { $next = [int](($Body | ConvertFrom-Json).nextInterval) } catch { return }
+  if ($next -gt 0 -and $next -ne $script:Interval) {
+    Write-Host "[lan-monitor] intervalo atualizado pelo servidor: $($script:Interval)s -> ${next}s"
+    $script:Interval = $next
+  }
+}
+
 function Invoke-Cycle {
   $p  = Measure-Ping
   $dl = Measure-Download
@@ -403,6 +421,8 @@ function Invoke-Cycle {
 
   "{0}  down {1} Mbps  up {2} Mbps  ping {3} ms (jitter {4})  -> {5}" -f `
     $ts, $dl, $ul, $p.ping, $p.jitter, $status | Write-Host
+
+  if ($r.code -ge 200 -and $r.code -lt 300) { Update-IntervalFromResponse $r.body }
 }
 
 if ($Once) {

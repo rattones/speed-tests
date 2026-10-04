@@ -50,7 +50,8 @@
               sozinho depois que o computador reinicia e é reiniciado se o processo cair.
               <strong>Não é preciso recriar nada a cada reboot.</strong> O intervalo entre
               medições é obtido automaticamente das configurações do servidor (⚙️ →
-              intervalo de coleta das WANs); para usar outro valor, adicione
+              intervalo de coleta das WANs) e reenviado a cada medição, então uma mudança
+              lá vale para as máquinas sem reinstalar; para fixar outro valor, adicione
               <span class="font-mono">--interval SEGUNDOS</span>
               (<span class="font-mono">-Interval</span> no Windows).
             </p>

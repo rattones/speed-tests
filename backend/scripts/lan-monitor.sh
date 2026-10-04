@@ -17,7 +17,10 @@
 # Se --interval (ou INTERVAL=) não for informado, o intervalo é obtido
 # automaticamente do servidor (GET /api/config, campo cronInterval — o mesmo
 # intervalo de coleta configurado para as WANs), convertido para segundos.
-# Se não for possível obter, usa 300s (5 min).
+# Se não for possível obter, usa 300s (5 min). Depois, a cada medição enviada,
+# o servidor responde com o intervalo até a próxima (campo nextInterval) e o
+# agente se reajusta sozinho — mudar o intervalo no dashboard vale sem reinstalar.
+# Com --interval informado, o valor fica fixo e o nextInterval é ignorado.
 #
 # Variáveis de ambiente equivalentes: SERVER_URL, INTERVAL, DEVICE_NAME
 #
@@ -31,8 +34,8 @@
 #     macOS: cria e carrega um LaunchAgent (~/Library/LaunchAgents/com.speedmonitor.lan-monitor.plist);
 #            inicia no login e é mantido vivo pelo launchd.
 #   O script é copiado para ~/.local/share/lan-monitor/ — pode apagar o arquivo baixado depois.
-#   O intervalo é resolvido nesse momento (a partir do cronInterval do servidor,
-#   a menos que --interval tenha sido informado) e gravado fixo no serviço instalado.
+#   Só um --interval informado explicitamente é gravado fixo no serviço; sem ele,
+#   o serviço segue o intervalo enviado pelo servidor a cada medição.
 #
 # PARAR / REMOVER o monitoramento:
 #   ./lan-monitor.sh --uninstall
@@ -143,6 +146,10 @@ fetch_interval_from_server() {
   echo "$seconds"
 }
 
+# INTERVAL_FIXED=1 → informado pelo usuário: não é sobrescrito pelo servidor.
+INTERVAL_FIXED=0
+[[ -n "$INTERVAL" ]] && INTERVAL_FIXED=1
+
 if [[ -z "$INTERVAL" ]]; then
   if INTERVAL="$(fetch_interval_from_server)"; then
     echo "[lan-monitor] intervalo obtido do servidor (cronInterval): ${INTERVAL}s"
@@ -158,7 +165,8 @@ if [[ "$DO_INSTALL" -eq 1 ]]; then
   cp "$0" "$INSTALLED_SCRIPT"
   chmod +x "$INSTALLED_SCRIPT"
 
-  args=(--server "$SERVER_URL" --interval "$INTERVAL")
+  args=(--server "$SERVER_URL")
+  [[ "$INTERVAL_FIXED" -eq 1 ]] && args+=(--interval "$INTERVAL")
   [[ -n "$DEVICE_NAME" ]] && args+=(--name "$DEVICE_NAME")
 
   if [[ "$OS" == "macos" ]]; then
@@ -426,6 +434,19 @@ log_payload() {
   fi
 }
 
+# Lê o nextInterval (segundos) da resposta do servidor e reajusta o intervalo
+# do loop, exceto quando o usuário fixou --interval.
+apply_next_interval() {
+  local next
+  [[ "$INTERVAL_FIXED" -eq 1 ]] && return 0
+  next="$(printf '%s' "$1" | sed -n 's/.*"nextInterval" *: *\([0-9][0-9]*\).*/\1/p')"
+  [[ -n "$next" && "$next" -gt 0 ]] || return 0
+  if [[ "$next" != "$INTERVAL" ]]; then
+    echo "[lan-monitor] intervalo atualizado pelo servidor: ${INTERVAL}s → ${next}s"
+    INTERVAL="$next"
+  fi
+}
+
 run_cycle() {
   local ping_out ping_ms jitter_ms dl ul payload http body ts
 
@@ -450,7 +471,7 @@ run_cycle() {
     "$ts" "$dl" "$ul" "$ping_ms" "$jitter_ms" "$http"
 
   case "$http" in
-    2*) : ;;
+    2*) apply_next_interval "$body" ;;
     *)  echo "[lan-monitor] servidor recusou (HTTP $http): ${body:-sem corpo}" >&2
         echo "[lan-monitor] payload enviado: $payload" >&2
         return 1 ;;

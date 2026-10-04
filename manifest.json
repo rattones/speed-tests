@@ -1,7 +1,7 @@
 {
   "name": "speed-monitor",
   "displayName": "Speed Monitor",
-  "version": "2.8.0",
+  "version": "2.9.0",
   "description": "Monitor de rede com dashboard em tempo real e histórico de medições: velocidade dos links WAN (speedtest-cli Ookla) e da rede local (agente por máquina).",
   "author": "rattones <contato@marceloratton.com>",
   "repository": "https://github.com/rattones/speed-tests",
