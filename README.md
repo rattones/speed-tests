@@ -315,7 +315,7 @@ WANs e intervalo de coleta não são mais configurados por variável de ambiente
 
 Cada WAN e cada dispositivo tem limites configuráveis de **download mínimo**, **upload mínimo** e **ping máximo** (⚙️ na UI). Quando uma medição fica abaixo do esperado, o card fica com o indicador vermelho e o valor destacado; limite `0` desativa a checagem daquela métrica.
 
-Nas WANs, o card mostra também o **jitter** (`±` ao lado do ping) e a **perda de pacotes** medida pelo speedtest, com cor fixa: verde em `0%`, amarelo abaixo de `1%` e vermelho a partir de `1%`. Nem todo servidor Ookla mede perda de pacotes — nesse caso o card mostra `—`; se for o caso, escolha outro servidor para a WAN.
+Nas WANs, o card mostra também o **jitter** (`±` ao lado do ping) e a **perda de pacotes** medida pelo speedtest, com cor fixa: verde em `0%`, amarelo abaixo de `1%` e vermelho a partir de `1%`. Nem todo servidor Ookla mede perda de pacotes — nesse caso o card mostra "servidor não suporta"; para medi-la, escolha outro servidor para a WAN. Nos cards da rede local a linha aparece como "não medida na rede local", já que os agentes não medem perda.
 
 ## Segurança
 

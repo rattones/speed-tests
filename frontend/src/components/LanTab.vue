@@ -70,6 +70,8 @@
           :max-ping="d.maxPing"
           :measuring="false"
           :can-run-test="false"
+          packet-loss-unavailable="não medida na rede local"
+          packet-loss-unavailable-hint="O agente de rede local mede velocidade, ping e jitter, mas não perda de pacotes"
           :subtitle="deviceSubtitle(d)"
           :visible="deviceVisibility[d.id] !== false"
           @toggle-visible="toggleDeviceVisible"

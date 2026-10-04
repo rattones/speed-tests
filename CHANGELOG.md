@@ -10,6 +10,13 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ---
 
+## [2.10.1] — 2026-10-04
+
+### Alterado
+- `WanCard.vue` — a linha "Perda" é exibida sempre, mantendo a altura dos cards igual. Sem valor medido, mostra o motivo em texto menor: "servidor não suporta" nas WANs cujo servidor Ookla não mede perda de pacotes (dica no tooltip sugere escolher outro servidor) e "não medida na rede local" nos cards dos dispositivos (`LanTab.vue`), cujos agentes não medem perda
+
+---
+
 ## [2.10.0] — 2026-10-04
 
 ### Adicionado
