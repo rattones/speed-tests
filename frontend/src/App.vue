@@ -100,15 +100,17 @@
 </template>
 
 <script>
-const { loadModule, options, defineAsyncComponent } = window.__SFC__;
+import WanTab from './components/WanTab.vue';
+import LanTab from './components/LanTab.vue';
+import ConfigPanel from './components/ConfigPanel.vue';
 
 export default {
   name: 'App',
 
   components: {
-    WanTab:      defineAsyncComponent(() => loadModule('/src/components/WanTab.vue', options)),
-    LanTab:      defineAsyncComponent(() => loadModule('/src/components/LanTab.vue', options)),
-    ConfigPanel: defineAsyncComponent(() => loadModule('/src/components/ConfigPanel.vue', options)),
+    WanTab,
+    LanTab,
+    ConfigPanel,
   },
 
   data() {

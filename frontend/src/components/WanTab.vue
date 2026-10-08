@@ -60,14 +60,15 @@
 </template>
 
 <script>
-const { loadModule, options, defineAsyncComponent } = window.__SFC__;
+import WanCard from './WanCard.vue';
+import SpeedChart from './SpeedChart.vue';
 
 export default {
   name: 'WanTab',
 
   components: {
-    WanCard:    defineAsyncComponent(() => loadModule('/src/components/WanCard.vue', options)),
-    SpeedChart: defineAsyncComponent(() => loadModule('/src/components/SpeedChart.vue', options)),
+    WanCard,
+    SpeedChart,
   },
 
   props: {

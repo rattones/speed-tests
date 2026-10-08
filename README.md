@@ -17,7 +17,7 @@ Desenvolvido para uso com roteador **TP-Link Omada ER605** em configuração de 
 | Banco de dados | SQLite3 (better-sqlite3) |
 | Engine de teste WAN | speedtest-cli oficial Ookla |
 | Engine de teste LAN | endpoints HTTP no próprio backend + agente (bash / PowerShell) |
-| Frontend | Vue 3 (CDN) + Tailwind CSS + ApexCharts |
+| Frontend | Vue 3 + Tailwind CSS 3 + ApexCharts, compilado com Vite (sem dependência de CDN) |
 
 ## Estrutura do Projeto
 
@@ -27,6 +27,7 @@ speed-tests/
 ├── docker-compose.yml
 ├── .env.example
 ├── .gitignore
+├── .dockerignore
 ├── data/                        ← banco SQLite (criado manualmente, ver setup)
 ├── backend/
 │   ├── server.js                ← entry point Express
@@ -46,8 +47,15 @@ speed-tests/
 │       └── lan-monitor.ps1      ← agente de rede local (Windows)
 └── frontend/
     ├── index.html
+    ├── package.json             ← dependências e scripts (dev / build)
+    ├── vite.config.js           ← build + proxy /api do servidor de dev
+    ├── tailwind.config.js
+    ├── postcss.config.js
+    ├── public/                  ← arquivos copiados como estão (favicons)
+    ├── dist/                    ← build gerado (não versionado)
     └── src/
         ├── main.js
+        ├── style.css            ← diretivas do Tailwind
         ├── App.vue              ← header + seletor de abas
         ├── lanMeasure.js        ← medição LAN pelo navegador
         ├── utils/
@@ -116,8 +124,10 @@ docker exec speed-tests speedtest --accept-license --accept-gdpr --format=json -
 ### 5. Iniciar
 
 ```bash
-docker compose up -d
+docker compose up -d --build
 ```
+
+O frontend é compilado (Vite + Tailwind) dentro da imagem, num estágio de build do `Dockerfile`. Não é preciso ter Node.js no host nem rodar `npm` manualmente.
 
 Acesse o dashboard em: **http://\<ip-do-host\>:8020**
 
@@ -186,9 +196,24 @@ Cada payload enviado (e a resposta do servidor) é registrado num log de diagnó
 
 ```bash
 docker compose up -d        # iniciar em background
+docker compose up -d --build   # recompilar a imagem (obrigatório após mudar o frontend)
 docker compose down         # parar e remover container
 docker compose restart      # reiniciar (sem recriar — não recarrega .env)
 docker compose down && docker compose up -d   # recarregar .env alterado
+```
+
+### Desenvolver o frontend
+
+O frontend é compilado no build da imagem e servido pelo backend a partir de `/frontend` (variável `STATIC_DIR`), então alterações em `frontend/` **só aparecem no container após `docker compose up -d --build`**.
+
+Para desenvolver com hot reload, use o servidor do Vite, que encaminha as chamadas `/api` para o backend:
+
+```bash
+cd frontend
+npm install
+npm run dev                  # http://localhost:5173 → /api para http://localhost:8020
+BACKEND_URL=http://192.168.0.10:8020 npm run dev   # backend em outro host
+npm run build                # gera frontend/dist (não versionado)
 ```
 
 ### Acompanhar logs
@@ -308,6 +333,7 @@ Arquivo SQLite em `./data/speed_tests.db`. Tabelas:
 | `TZ` | — | Timezone do container |
 | `DB_PATH` | `/data/speed_tests.db` | Caminho do banco SQLite no container |
 | `LAN_TEST_MAX_BYTES` | `104857600` | Tamanho máx. (bytes) dos endpoints de teste de rede local |
+| `STATIC_DIR` | `backend/public` | Diretório do frontend compilado. Definida no `Dockerfile` (`/frontend`), não precisa ir no `.env` |
 
 WANs e intervalo de coleta não são mais configurados por variável de ambiente — ver "Configurar WANs" acima.
 

@@ -2,8 +2,7 @@
  * Medição de velocidade da rede local, versão browser (usa `fetch` nativo).
  *
  * Mesma matemática de `backend/lanMeasure.js` — mantida aqui como cópia porque
- * os `<script>` dos SFCs carregados pelo vue3-sfc-loader não são ES modules e
- * não podem usar `import`. Exposto em `window.__LAN_MEASURE__` pelo main.js.
+ * o módulo do backend é CommonJS e fica fora do projeto do frontend (Vite).
  *
  * Este teste é EFÊMERO: só exibe o resultado na tela. Não envia nada ao
  * servidor nem cria dispositivo — persistência é só via os scripts standalone.
