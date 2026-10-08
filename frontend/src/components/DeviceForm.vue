@@ -84,7 +84,7 @@
 </template>
 
 <script>
-const { deriveShades } = window.__COLOR_UTILS__;
+import { deriveShades } from '../utils/color.js';
 
 export default {
   name: 'DeviceForm',

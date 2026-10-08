@@ -1,6 +1,6 @@
 {
   "name": "speed-tests-backend",
-  "version": "2.10.1",
+  "version": "2.11.0",
   "description": "Monitor de velocidade WAN com alertas push",
   "main": "server.js",
   "engines": {

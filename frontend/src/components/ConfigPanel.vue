@@ -160,7 +160,8 @@
 </template>
 
 <script>
-const { loadModule, options, defineAsyncComponent } = window.__SFC__;
+import WanForm from './WanForm.vue';
+import DeviceForm from './DeviceForm.vue';
 
 export default {
   name: 'ConfigPanel',
@@ -168,8 +169,8 @@ export default {
   emits: ['close', 'changed'],
 
   components: {
-    WanForm:    defineAsyncComponent(() => loadModule('/src/components/WanForm.vue', options)),
-    DeviceForm: defineAsyncComponent(() => loadModule('/src/components/DeviceForm.vue', options)),
+    WanForm,
+    DeviceForm,
   },
 
   props: {

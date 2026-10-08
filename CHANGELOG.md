@@ -10,6 +10,27 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ---
 
+## [2.11.0] — 2026-10-08
+
+> **Atualização:** recrie o container com `docker compose up -d --build`. Um container criado antes desta versão continua montando `./frontend` como estáticos e passa a servir o código-fonte, sem o build, o que deixa a tela em branco.
+
+### Alterado
+- Frontend compilado com **Vite**, sem carregar nada de CDN em tempo de execução. Antes, Vue (unpkg), ApexCharts, vue3-sfc-loader, vue3-apexcharts (jsDelivr) e Tailwind (Play CDN, sem versão fixa) vinham da internet a cada acesso: o dashboard não abria sem conexão externa e não havia verificação de integridade dos scripts
+  - `frontend/package.json`, `vite.config.js`, `tailwind.config.js`, `postcss.config.js` — dependências com versão fixa e build de produção; Tailwind 3 compilado gera só as classes usadas (~14 kB)
+  - Componentes `.vue` compilados no build: `vue3-sfc-loader` removido e os `<script>` passam a usar `import` normal, eliminando `window.__SFC__`, `window.__COLOR_UTILS__` e `window.__LAN_MEASURE__`
+  - ApexCharts mantido na versão 3.54; `vue3-apexcharts` fixado em 1.7.x, a última compatível com ApexCharts 3 (a 1.11 exige ApexCharts 5)
+  - `Dockerfile` — estágio `frontend-build` compila o frontend; o resultado vai para `/frontend` na imagem
+  - `backend/server.js` — diretório dos estáticos configurável via `STATIC_DIR` (padrão `backend/public`)
+  - `docker-compose.yml` — removido o volume `./frontend:/app/public`; alterações no frontend exigem `docker compose up -d --build`
+  - Favicons movidos para `frontend/public/`
+  - `npm run dev` no frontend sobe o servidor do Vite com hot reload e proxy de `/api` para o backend
+
+### Adicionado
+- `.dockerignore` — exclui `node_modules`, `frontend/dist`, `.env` e o banco do contexto de build
+- `frontend/dist/` no `.gitignore`: o build não é versionado
+
+---
+
 ## [2.10.1] — 2026-10-04
 
 ### Alterado

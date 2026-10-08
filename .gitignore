@@ -12,6 +12,12 @@ data/
 # Dependências Node.js
 node_modules/
 
+# Build do frontend (gerado pelo Vite)
+frontend/dist/
+
+# Ponto de montagem criado pelo Docker (volume ./manifest.json:/app/manifest.json)
+backend/manifest.json
+
 # Arquivos de sistema
 .DS_Store
 Thumbs.db

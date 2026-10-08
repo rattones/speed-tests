@@ -1,3 +1,13 @@
+# ── Estágio 1: build do frontend (Vite + Tailwind) ─────────────────────────
+FROM node:20-slim AS frontend-build
+
+WORKDIR /build
+COPY frontend/package*.json ./
+RUN npm ci --no-audit --no-fund
+COPY frontend/ ./
+RUN npm run build
+
+# ── Estágio 2: aplicação ──────────────────────────────────────────────────
 FROM node:20-slim
 
 # ── Dependências do sistema ────────────────────────────────────────────────
@@ -28,7 +38,10 @@ RUN npm install --omit=dev --no-audit --no-fund
 
 # ── Código da aplicação ───────────────────────────────────────────────────
 COPY backend/ ./
-COPY frontend/ ./public/
+# Frontend compilado fica fora de /app para não ser encoberto pelo volume
+# ./backend:/app do docker-compose
+COPY --from=frontend-build /build/dist /frontend
+ENV STATIC_DIR=/frontend
 COPY manifest.json ./manifest.json
 
 # Garantir que o script de teste é executável

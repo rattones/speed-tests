@@ -4,7 +4,7 @@
 #   mkdir -p data
 #
 # Uso:
-#   docker compose up -d          # iniciar em background
+#   docker compose up -d --build  # iniciar em background (recompila o frontend)
 #   docker compose logs -f        # acompanhar logs
 #   docker compose down           # parar e remover containers
 
@@ -21,8 +21,6 @@ services:
       # Protege o node_modules instalado no build do container
       # (evita que o volume acima sobrescreva os módulos)
       - node_modules:/app/node_modules
-      # Frontend (servido como estáticos)
-      - ./frontend:/app/public
       # Persistência do banco SQLite
       - ./data:/data
       # Arquivo de configuração (somente leitura)

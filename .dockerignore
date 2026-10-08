@@ -1,0 +1,11 @@
+# Dependências e build locais — reinstalados/recompilados dentro da imagem
+**/node_modules
+frontend/dist
+
+# Credenciais e dados — nunca vão para a imagem
+**/.env
+data
+*.sqlite
+*.db
+
+.git

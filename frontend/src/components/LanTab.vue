@@ -107,17 +107,20 @@
 </template>
 
 <script>
-const { loadModule, options, defineAsyncComponent } = window.__SFC__;
-const { runLanTest } = window.__LAN_MEASURE__;
+import WanCard from './WanCard.vue';
+import SpeedChart from './SpeedChart.vue';
+import LanHelpModal from './LanHelpModal.vue';
+import LanTestResultModal from './LanTestResultModal.vue';
+import { runLanTest } from '../lanMeasure.js';
 
 export default {
   name: 'LanTab',
 
   components: {
-    WanCard:            defineAsyncComponent(() => loadModule('/src/components/WanCard.vue', options)),
-    SpeedChart:         defineAsyncComponent(() => loadModule('/src/components/SpeedChart.vue', options)),
-    LanHelpModal:       defineAsyncComponent(() => loadModule('/src/components/LanHelpModal.vue', options)),
-    LanTestResultModal: defineAsyncComponent(() => loadModule('/src/components/LanTestResultModal.vue', options)),
+    WanCard,
+    SpeedChart,
+    LanHelpModal,
+    LanTestResultModal,
   },
 
   props: {

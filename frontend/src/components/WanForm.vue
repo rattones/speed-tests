@@ -98,8 +98,8 @@
 </template>
 
 <script>
-const { loadModule, options, defineAsyncComponent } = window.__SFC__;
-const { deriveShades } = window.__COLOR_UTILS__;
+import ServerIpModal from './ServerIpModal.vue';
+import { deriveShades } from '../utils/color.js';
 
 export default {
   name: 'WanForm',
@@ -107,7 +107,7 @@ export default {
   emits: ['save', 'cancel'],
 
   components: {
-    ServerIpModal: defineAsyncComponent(() => loadModule('/src/components/ServerIpModal.vue', options)),
+    ServerIpModal,
   },
 
   props: {

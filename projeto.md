@@ -13,7 +13,7 @@ Versão atual: ver `manifest.json` (formato `x.y.z` — x: funcionalidades princ
 - Engine de teste LAN: endpoints HTTP no próprio backend + agentes sem dependências (Bash para Linux/macOS, PowerShell para Windows).
 - Backend: Node.js 20 + Express, agendamento com `node-cron`, API REST.
 - Banco de dados: SQLite3 (`better-sqlite3`, WAL mode), armazenado localmente.
-- Frontend: Vue 3 via CDN (SFCs carregados em runtime por `vue3-sfc-loader`, sem build step) + Tailwind CSS (CDN) + ApexCharts.
+- Frontend: Vue 3 + Tailwind CSS 3 + ApexCharts, compilado com Vite no estágio `frontend-build` do Dockerfile (sem CDN em runtime; `frontend/dist` não é versionado).
 
 # Requisitos Arquiteturais e de Segurança
 1. Credenciais e infraestrutura: apenas configurações de infraestrutura ficam no `.env` (`PORT`, `TZ`, `DB_PATH`, `LAN_TEST_MAX_BYTES`), com `.env.example` sempre espelhando o `.env`. O `.env` e o banco SQLite (`data/`, `*.db`) ficam no `.gitignore` e nunca são comitados.
